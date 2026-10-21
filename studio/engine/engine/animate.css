@@ -1,5 +1,0 @@
-/* engine/animate.css — currently unused.
-   engine/animate.js no longer registers caption buttons (the per-image Motion toggle and
-   any indicator styling now live in engine/ui.js), so it doesn't inject a <link> to this
-   file anymore. Left in place in case a future extension of engine/animate.js needs
-   dedicated styles again. */
