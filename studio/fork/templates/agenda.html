@@ -1,0 +1,76 @@
+<!-- Agenda (AUX): the shared event's programme as one image, so the agenda can be posted on its own. The list is the hero:
+     the title is smaller than on the other event designs, the graphic is one of the quiet ones (lines, plain; the corner too on landscape, where the rows are on the right and the
+     corner's block sits under them; the shape graphics and the corner on a portrait board do not hold five rows) and
+     the rows step down a size before the call to action, the chips and the eyebrow give way (data-steps, data-drop).
+     The landscape board puts the title and the chips on the left and the rows on the right. -->
+<template data-template="agenda" data-slide data-group="Event" data-label="Agenda"
+          data-description="The programme of the event on its own: times and talks, from the shared event"
+          data-sizes="ig-post" data-supports="ig-post ig-square ig-story linkedin meetup">
+  <script type="application/json">
+  {
+    "uses": ["event"],
+    "fields": [],
+    "parts": [
+      { "key": "title",   "label": "Title" },
+      { "key": "when",    "label": "Date and venue chips" },
+      { "key": "cta",     "label": "Call to action" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-p aux-agendaboard" data-v="spread" data-aux-backdrop="plain"
+           data-choices-graphic="lines plain corner@landscape">
+    <div class="stack aux-top">
+      <div class="aux-lockup">
+        <div class="logo" data-variant="auto"></div>
+        <span class="aux-lockup__sep"></span>
+        <span class="aux-lockup__series" data-f="event.series"></span>
+      </div>
+      <p class="eyebrow" data-drop="3">Program</p>
+      <h1 class="aux-h-agenda" data-part="title" data-aux-fit data-f="event.title"></h1>
+      <div class="aux-agenda a0" data-steps="a0 a1 a2" data-group>
+        <div class="aux-ag" data-each="event.agenda"><b data-f="time"></b><span data-f="label"></span></div>
+      </div>
+      <p class="aux-ag-empty" data-ph data-if-not="event.agenda">Add the agenda under Shared content: Event</p>
+    </div>
+    <div class="stack aux-bottom">
+      <div class="aux-chips" data-part="when" data-drop="2" data-group>
+        <span class="aux-chip" data-hl data-group>
+          <span data-show="event.date" data-format="date"></span>
+          <span data-f="event.time"></span>
+        </span>
+        <span class="aux-chip" data-show="event.venue event.city" data-join=", "></span>
+      </div>
+      <p class="aux-cta" data-f="event.cta" data-part="cta" data-drop="1"></p>
+    </div>
+  </section>
+
+  <!-- landscape (link post, Meetup cover): title and chips on the left, the rows on the right -->
+  <section class="board aux-p aux-agendaboard" data-when="landscape" data-v="spread" data-aux-backdrop="plain"
+           data-choices-graphic="lines corner plain">
+    <div class="aux-agsplit">
+      <div class="stack aux-top">
+        <div class="aux-lockup">
+          <div class="logo" data-variant="auto"></div>
+          <span class="aux-lockup__sep"></span>
+          <span class="aux-lockup__series" data-f="event.series"></span>
+        </div>
+        <p class="eyebrow" data-drop="3">Program</p>
+        <h1 class="aux-h-agenda" data-part="title" data-aux-fit data-f="event.title"></h1>
+        <div class="aux-chips" data-part="when" data-drop="2" data-group>
+          <span class="aux-chip" data-hl data-group>
+            <span data-show="event.date" data-format="date"></span>
+            <span data-f="event.time"></span>
+          </span>
+          <span class="aux-chip" data-show="event.venue event.city" data-join=", "></span>
+        </div>
+      </div>
+      <div class="aux-agenda a0" data-steps="a0 a1 a2" data-group>
+        <div class="aux-ag" data-each="event.agenda"><b data-f="time"></b><span data-f="label"></span></div>
+      </div>
+      <p class="aux-ag-empty" data-ph data-if-not="event.agenda">Add the agenda under Shared content: Event</p>
+    </div>
+  </section>
+</template>

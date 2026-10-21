@@ -1,0 +1,65 @@
+<!-- Save the date / reminder (AUX): the date is the hero. Edit the kicker to "Už zítra!" for a reminder.
+     Ported from the prototype's templates/save-the-date.js. Date, time, place, title and call to action come from the
+     shared event; the kicker is the post's own. The big date is the event date as "12. 10." (format dayMonth, custom.js).
+     The graphic is the prototype's candidate list (chevron-low, then corner, then lines): custom.js keeps the first one the text clears, unless a person picks one (the Graphic part). A cover photo fills the window of the photo graphics. -->
+<template data-template="save-the-date" data-slide data-group="Event" data-label="Save the date / reminder"
+          data-description="Date-first teaser; edit the kicker for “Už zítra!”"
+          data-sizes="ig-story">
+  <script type="application/json">
+  {
+    "uses": ["event"],
+    "fields": [
+      { "key": "kicker", "label": "Kicker", "default": "Save the date" },
+      { "key": "cover",  "label": "Cover photo", "type": "image" }
+    ],
+    "parts": [
+      { "key": "place",   "label": "Venue" },
+      { "key": "cta",     "label": "Call to action", "auto": "Landscape only" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-std" data-v="spread" data-aux-backdrop="chevron-low corner lines" data-aux-anchor="bottom" data-choices-graphic="corner lines plain photo chevron-low@story photo-chevron@story">
+    <figure class="media aux-cover" data-p="cover"></figure>
+    <div class="stack aux-top" data-gap="md">
+      <div class="aux-lockup">
+        <div class="logo" data-variant="auto"></div>
+        <span class="aux-lockup__sep"></span>
+        <span class="aux-lockup__series" data-f="event.series"></span>
+      </div>
+      <p class="eyebrow" data-f="kicker"></p>
+      <p class="aux-bigdate" data-aux-fit data-show="event.date" data-format="dayMonth"></p>
+      <p class="aux-bigdate-sub" data-group>
+        <span data-show="event.date" data-format="weekday"></span>
+        <span data-f="event.time"></span>
+      </p>
+      <h1 class="h1" data-aux-fit data-steps="h1 h2" data-f="event.title"></h1>
+      <div class="aux-chips" data-group>
+        <span class="aux-chip" data-part="place" data-show="event.venue event.city" data-join=", "></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- landscape (link post, Meetup cover): the place joins the date line, and the call to action closes the board -->
+  <section class="board aux-std" data-when="landscape" data-v="spread" data-aux-backdrop="chevron-low corner lines" data-aux-anchor="bottom" data-choices-graphic="chevron-high cross rotated corner lines plain photo-cut photo-rotated photo chevron-low@linkedin photo-chevron@linkedin">
+    <figure class="media aux-cover" data-p="cover"></figure>
+    <div class="stack aux-top" data-gap="sm">
+      <div class="aux-lockup">
+        <div class="logo" data-variant="auto"></div>
+        <span class="aux-lockup__sep"></span>
+        <span class="aux-lockup__series" data-f="event.series"></span>
+      </div>
+      <p class="eyebrow" data-f="kicker"></p>
+      <p class="aux-bigdate" data-aux-fit data-show="event.date" data-format="dayMonth"></p>
+      <p class="aux-bigdate-sub" data-group>
+        <span data-show="event.date" data-format="weekday"></span>
+        <span data-f="event.time"></span>
+        <span data-part="place" data-show="event.venue event.city" data-join=", "></span>
+      </p>
+      <h1 class="h1" data-aux-fit data-steps="h1 h2" data-f="event.title"></h1>
+    </div>
+    <p class="aux-cta" data-f="event.cta" data-part="cta"></p>
+  </section>
+</template>

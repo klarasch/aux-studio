@@ -1,0 +1,166 @@
+/* brand: asociace-ux — Asociace UX (asociaceux.cz), the Czech UX association.
+   Default ground is AUX's "dark" theme; "mint" and "lime" are custom grounds (data-ground) below.
+   Jost and Work Sans are SIL OFL 1.1 (Google Fonts), self-hosted: latin + latin-ext (Czech). */
+
+@font-face { font-family: "Jost"; font-weight: 400 700; font-display: swap;
+  src: url("assets/aux/fonts/Jost-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Jost"; font-weight: 400 700; font-display: swap;
+  src: url("assets/aux/fonts/Jost-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Work Sans"; font-weight: 400 600; font-display: swap;
+  src: url("assets/aux/fonts/WorkSans-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+@font-face { font-family: "Work Sans"; font-weight: 400 600; font-display: swap;
+  src: url("assets/aux/fonts/WorkSans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+
+:root {
+  /* AUX "dark" theme */
+  --app-bg: #000803;
+  --bg: #010B04;
+  --fg: #ffffff;
+  --muted: rgba(255, 255, 255, 0.72);
+  --faint: rgba(255, 255, 255, 0.16);
+  --surface: #151f18;           /* the prototype's chip: white at 8% over --bg */
+  --accent: #60C70F;
+  --accent-2: #D4EAD9;          /* AUX "ring"/duo light: decorative only */
+  --accent-fg: #07140A;
+  --wash-opacity: 0;
+  --bg-tone: dark;
+
+  --font-display: "Jost", system-ui, sans-serif;
+  --font-body: "Work Sans", system-ui, sans-serif;
+  --font-caption: "Jost", system-ui, sans-serif;   /* no mono face */
+  --font-eyebrow: "Jost", system-ui, sans-serif;
+  --base: 16px;
+  --scale: 1.25;
+  --weight-display: 500;        /* prototype titles are Jost 500 */
+  --weight-heading: 600;
+  --tracking: .6;               /* prototype: -.015em on titles vs the runtime's -.025em */
+  --tracking-eyebrow: .12em;    /* prototype kickers: .12em, series lockup .14em */
+
+  --space: 8px;
+  --radius: 16px;
+  --stroke: 1.5px;
+
+  /* data: green-led; NOT run through validate_palette.js */
+  --chart-1: #60C70F;
+  --chart-2: #2FB5A8;
+  --chart-3: #E8B931;
+  --chart-4: #5B9BF0;
+  --chart-5: #C77DDB;
+  --chart-6: #F0706A;
+  --chart-accent: #60C70F;
+  --chart-seq-0: #0F401A;
+  --chart-seq-1: #60C70F;
+  --good: #60C70F;
+  --bad: #FF8A80;
+
+  --illo-1: var(--accent);
+  --illo-2: #2FB5A8;
+  --illo-3: #5B9BF0;
+  --illo-4: var(--fg);
+
+  /* grounds */
+  --inset-ground: dark;
+  --inverse-bg: #E5F6E9;        /* inverse = AUX mint */
+  --art-ink: bg;
+  --art: linear-gradient(160deg, #010B04 0%, #03140A 45%, #08240F 100%);
+  --band: #60C70F;
+
+  /* logo: --logo-dark is for LIGHT grounds, --logo-light for DARK grounds */
+  --logo-light: url("assets/aux/logo/aux-dark.svg");
+  --logo-dark: url("assets/aux/logo/aux-light.svg");
+  --logo-mono: url("assets/aux/logo/aux-mono.svg");
+  --logo-full-light: url("assets/aux/logo/aux-full-dark.svg");
+  --logo-full-dark: url("assets/aux/logo/aux-full-light.svg");
+  --logo-full-mono: url("assets/aux/logo/aux-full-mono.svg");
+  --logo-min: 20px;
+
+  /* AUX-only theme values, read by the fork's backdrop code (custom.js) */
+  --aux-on-band: #07140A;  /* text on the band colour (chips, CTA disc) */
+  --aux-band: #60C70F;
+  --aux-dot: #E5F6E9;
+  --aux-line: #60C70F;
+  --aux-line-fg: #E5F6E9;
+  --aux-ring: #D4EAD9;
+  --aux-logo-accent: #60C70F;
+  --aux-duo-dark: #06180B;
+  --aux-duo-light: #D4EAD9;
+  --aux-grid-opacity: .17;
+  --aux-grid-accent-opacity: .17;
+  --aux-shade: 1, 11, 4;        /* rgb of the ground, for text-protection scrims */
+}
+
+/* custom ground: mint (AUX "light" theme) */
+.board[data-ground="mint"] {
+  --bg: #E5F6E9;
+  --fg: #091C0D;
+  --muted: rgba(9, 28, 13, 0.72);
+  --faint: rgba(9, 28, 13, 0.14);
+  --surface: #d6e7da;
+  --accent: #0F401A;            /* AUX accentText: the green that reads on mint */
+  --accent-2: #60C70F;
+  --accent-fg: #FFFFFF;
+  --bg-tone: light;
+  --inverse-bg: #091C0D;
+  --art: var(--bg);
+  --band: #60C70F;
+
+  --chart-1: #3E9A0B; --chart-2: #168A80; --chart-3: #B88A00;
+  --chart-4: #2F6FCC; --chart-5: #9440B0; --chart-6: #D0453F;
+  --chart-accent: #3E9A0B;
+  --chart-seq-0: #CDEBC0; --chart-seq-1: #0F401A;
+  --good: #1E7A0A; --bad: #B3261E;
+
+  --aux-on-band: #07140A;  /* text on the band colour (chips, CTA disc) */
+  --aux-band: #60C70F;
+  --aux-dot: #0F401A;
+  --aux-line: #60C70F;
+  --aux-line-fg: #010B04;
+  --aux-ring: #FFFFFF;
+  --aux-logo-accent: #60C70F;
+  --aux-duo-dark: #0F401A;
+  --aux-duo-light: #F4FBF5;
+  --aux-grid-opacity: .2;
+  --aux-grid-accent-opacity: .2;
+  --aux-shade: 229, 246, 233;
+}
+
+/* custom ground: lime (AUX "lime" theme) */
+.board[data-ground="lime"] {
+  --bg: #60C70F;
+  --fg: #07140A;
+  --muted: rgba(7, 20, 10, 0.75);
+  --faint: rgba(7, 20, 10, 0.18);
+  --surface: #57b50e;
+  --accent: #091C0D;
+  --accent-2: #E5F6E9;
+  --accent-fg: #FFFFFF;
+  --bg-tone: light;
+  --inverse-bg: #091C0D;
+  --art: var(--bg);
+  --band: #091C0D;
+  --logo-dark: url("assets/aux/logo/aux-lime.svg");   /* dark mark, white slashes */
+  --logo-full-dark: url("assets/aux/logo/aux-full-lime.svg");
+
+  --chart-1: #091C0D; --chart-2: #FFFFFF; --chart-3: #2F6FCC;
+  --chart-4: #7A3A00; --chart-5: #5A1E78; --chart-6: #B3261E;
+  --chart-accent: #091C0D;
+  --chart-seq-0: #A6E06B; --chart-seq-1: #091C0D;
+  --good: #07140A; --bad: #8F1D16;
+
+  --aux-on-band: #FFFFFF;  /* text on the band colour (chips, CTA disc) */
+  --aux-band: #091C0D;
+  --aux-dot: #E5F6E9;
+  --aux-line: rgba(7, 20, 10, 0.35);
+  --aux-line-fg: #010B04;
+  --aux-ring: #E5F6E9;
+  --aux-logo-accent: #FFFFFF;
+  --aux-duo-dark: #010B04;
+  --aux-duo-light: #E5F6E9;
+  --aux-grid-opacity: .18;
+  --aux-grid-accent-opacity: .3;
+  --aux-shade: 96, 199, 15;
+}

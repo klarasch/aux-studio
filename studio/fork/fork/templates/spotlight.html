@@ -1,0 +1,59 @@
+<!-- Speaker spotlights (AUX): one image per speaker of the shared event (data-pages="event.speakers"), the speaker's photo in the
+     photo cut. Ported from the prototype's templates/spotlight.js. Story and landscape have room for the full lockup and the talk title. -->
+<template data-template="spotlight" data-slide data-group="Event" data-label="Speaker spotlights"
+          data-description="One image per speaker of the event"
+          data-sizes="ig-post" data-pages="event.speakers">
+  <script type="application/json">
+  {
+    "uses": ["event"],
+    "parts": [
+      { "key": "talk",  "label": "Talk title", "auto": "On" },
+      { "key": "place", "label": "Venue chip" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-p" data-when="story landscape" data-v="spread" data-aux-backdrop="photo-cut photo" data-aux-photo="own" data-choices-graphic="photo photo-cut photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="photo"></figure>
+    <div class="aux-lockup">
+      <div class="logo" data-variant="auto"></div>
+      <span class="aux-lockup__sep"></span>
+      <span class="aux-lockup__series" data-f="/event.series"></span>
+    </div>
+    <div class="stack aux-bottom">
+      <p class="eyebrow"><span data-show="/event.series" data-format="speaks"></span></p>
+      <h1 data-aux-fit data-steps="h1 h2" data-f="name"></h1>
+      <p class="aux-role" data-show="role company" data-join=", " data-drop="3"></p>
+      <p class="aux-quote" data-part="talk" data-f="/event.title"></p>
+      <div class="aux-chips" data-group>
+        <span class="aux-chip" data-hl data-group>
+          <span data-show="/event.date" data-format="date"></span>
+          <span data-f="/event.time"></span>
+        </span>
+        <span class="aux-chip" data-part="place" data-show="/event.venue /event.city" data-join=", "></span>
+      </div>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-v="spread" data-aux-backdrop="photo-cut photo" data-aux-photo="own" data-choices-graphic="photo photo-cut@ig-post">
+    <figure class="media aux-cover" data-p="photo"></figure>
+    <div class="aux-lockup aux-lockup--mark">
+      <div class="logo" data-variant="auto"></div>
+    </div>
+    <div class="stack aux-bottom">
+      <p class="eyebrow"><span data-show="/event.series" data-format="speaks"></span></p>
+      <h1 data-aux-fit data-steps="h1 h2" data-f="name"></h1>
+      <p class="aux-role" data-show="role company" data-join=", " data-drop="3"></p>
+      <p class="aux-quote" data-part="talk" data-f="/event.title"></p>
+      <div class="aux-chips" data-group>
+        <span class="aux-chip" data-hl data-group>
+          <span data-show="/event.date" data-format="date"></span>
+          <span data-f="/event.time"></span>
+        </span>
+        <span class="aux-chip" data-part="place" data-show="/event.venue /event.city" data-join=", "></span>
+      </div>
+    </div>
+  </section>
+</template>

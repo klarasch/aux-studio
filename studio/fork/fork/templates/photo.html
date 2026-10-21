@@ -1,0 +1,42 @@
+<!-- Photo (AUX): a photo window with headline and text, or a photo fading into the ground. Own fields; may be a page of any carousel. -->
+<template data-template="photo" data-slide data-group="Posts" data-label="Photo"
+          data-description="A photo with a headline and text: beside it, or fading into the ground"
+          data-sizes="ig-post" data-supports="ig-post ig-square ig-story linkedin meetup">
+  <script type="application/json">
+  {
+    "preview": {"kicker": "UXMonday", "headline": "Jak to *vypadalo*", "text": "Plný sál, dvě přednášky a dlouhá diskuse."},
+    "fields": [
+      {"key": "kicker", "label": "Kicker or series", "default": "Novinka"},
+      {"key": "headline", "label": "Headline"},
+      {"key": "text", "label": "Text", "type": "long"},
+      {"key": "image", "label": "Photo", "type": "image"}
+    ],
+    "parts": [
+      { "key": "logo",    "label": "Logo" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-p" data-layout="photo" data-label="Photo and text" data-v="spread" data-aux-backdrop="photo-cut photo" data-aux-photo="own" data-choices-graphic="photo photo-cut@story photo-cut@landscape photo-chevron@ig-square photo-chevron@story photo-chevron@landscape photo-rotated@ig-square photo-rotated@story photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <p class="eyebrow" data-f="/kicker"></p>
+    <div class="stack aux-bottom">
+      <h1 class="aux-h-sm" data-aux-fit data-steps="h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-layout="photo-fade" data-label="Photo, fading into the ground" data-v="spread" data-aux-backdrop="photo" data-aux-photo="own" data-aux-photo-h="70" data-choices-graphic="photo">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="logo" data-variant="auto" data-part="logo"></div>
+    <div class="stack aux-bottom">
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+    </div>
+  </section>
+
+</template>

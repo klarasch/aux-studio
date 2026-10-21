@@ -1,0 +1,110 @@
+<!-- Event announcement (AUX): series lockup, date and place, title, speakers, call to action.
+     Ported from the prototype's templates/event.js. Components (.aux-lockup, .aux-chips, .aux-person)
+     are in custom.css; the backdrop is drawn by custom.js from data-aux-backdrop on the board:
+     "auto" picks by size and speaker count (the prototype's table), or name a backdrop id. -->
+<template data-template="event" data-slide data-group="Event" data-label="Event announcement"
+          data-description="Series, date and place, title and speakers, from the shared event"
+          data-sizes="ig-post ig-story meetup">
+  <script type="application/json">
+  {
+    "uses": ["event"],
+    "fields": [
+      { "key": "cover", "label": "Cover photo", "type": "image" }
+    ],
+    "parts": [
+      { "key": "description", "label": "Description", "auto": "Meetup cover only" },
+      { "key": "speakers",    "label": "Speakers" },
+      { "key": "place",       "label": "Venue chip" },
+      { "key": "cta",         "label": "Call to action" },
+      { "key": "graphic",     "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-ev" data-v="spread" data-aux-backdrop="auto" data-choices-graphic="corner plain photo lines@ig-post lines@story chevron-low@story chevron-high@story cross@story rotated@story photo-cut@story photo-chevron@story photo-rotated@story">
+    <figure class="media aux-cover" data-p="cover"></figure>
+    <div class="stack aux-top" data-gap="md">
+      <div class="aux-lockup">
+        <div class="logo" data-variant="auto"></div>
+        <span class="aux-lockup__sep"></span>
+        <span class="aux-lockup__series" data-f="event.series"></span>
+      </div>
+      <div class="aux-chips" data-size="big" data-group>
+        <span class="aux-chip" data-hl data-group>
+          <span data-show="event.date" data-format="date"></span>
+          <span data-f="event.time"></span>
+        </span>
+        <span class="aux-chip" data-part="place" data-show="event.venue event.city" data-join=", "></span>
+      </div>
+      <h1 class="display" data-aux-fit data-steps="display h1 h2" data-f="event.title"></h1>
+      <p class="lead" data-f="event.description" data-part="description" data-part-off data-drop="1"></p>
+    </div>
+
+    <div class="stack aux-bottom" data-gap="md">
+      <div class="aux-speakers" data-part="speakers" data-group>
+        <!-- one: the stage -->
+        <div class="aux-person" data-layout="solo" data-each="event.speakers" data-min="1" data-max="1">
+          <span class="avatar" data-p="photo" data-initials="name"></span>
+          <div class="aux-person__txt">
+            <p class="aux-person__name" data-f="name"></p>
+            <p class="aux-person__role" data-show="role company" data-join=", " data-drop="3"></p>
+          </div>
+        </div>
+        <!-- two or three: a row each -->
+        <div class="aux-person" data-each="event.speakers" data-min="2" data-max="3">
+          <span class="avatar" data-p="photo" data-initials="name"></span>
+          <div class="aux-person__txt">
+            <p class="aux-person__name" data-f="name"></p>
+            <p class="aux-person__role" data-show="role company" data-join=", " data-drop="3"></p>
+          </div>
+        </div>
+        <!-- four or more: round photos with names -->
+        <div class="aux-people-dots" data-group>
+          <div class="aux-person" data-layout="dot" data-each="event.speakers" data-min="4">
+            <span class="avatar" data-p="photo" data-initials="name"></span>
+            <p class="aux-person__name" data-f="name"></p>
+          </div>
+        </div>
+      </div>
+
+      <div class="row" data-justify="between" data-align="center">
+        <p class="aux-cta" data-f="event.cta" data-part="cta" data-drop="2"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- landscape (link post, Meetup cover): as the prototype, lockup, chips, title, then the speakers along
+       the bottom (no footer logo: the lockup has the mark, and the band would sit behind it); the call to action is left out. -->
+  <section class="board aux-ev" data-when="landscape" data-aux-backdrop="auto" data-v="spread" data-choices-graphic="chevron-low chevron-high cross rotated corner lines plain photo-cut photo-chevron photo-rotated photo">
+    <figure class="media aux-cover" data-p="cover"></figure>
+    <div class="stack aux-top" data-gap="sm">
+      <div class="aux-lockup">
+        <div class="logo" data-variant="auto"></div>
+        <span class="aux-lockup__sep"></span>
+        <span class="aux-lockup__series" data-f="event.series"></span>
+      </div>
+      <div class="aux-chips" data-size="big" data-group>
+        <span class="aux-chip" data-hl data-group>
+          <span data-show="event.date" data-format="date"></span>
+          <span data-f="event.time"></span>
+        </span>
+        <span class="aux-chip" data-part="place" data-show="event.venue event.city" data-join=", "></span>
+      </div>
+      <h1 class="h1" data-aux-fit data-steps="h1 h2" data-f="event.title"></h1>
+      <p class="lead" data-f="event.description" data-part="description" data-when="meetup" data-drop="1"></p>
+      <p class="lead" data-f="event.description" data-part="description" data-part-off data-unless="meetup" data-drop="1"></p>
+    </div>
+    <div class="row" data-justify="between" data-align="end" data-group>
+      <div class="aux-speakers" data-part="speakers" data-group>
+        <div class="aux-person" data-each="event.speakers" data-min="1">
+          <span class="avatar" data-p="photo" data-initials="name"></span>
+          <div class="aux-person__txt">
+            <p class="aux-person__name" data-f="name"></p>
+            <p class="aux-person__role" data-show="role company" data-join=", " data-drop="3"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</template>

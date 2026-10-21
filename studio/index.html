@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>makeitbrand Studio</title>
+<!-- the editor's own UI is always set in Geist, whatever the brand's fonts are -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" crossorigin="anonymous" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap">
+<!-- boards: the makeitbrand runtime and one brand -->
+<!-- the local stylesheets and scripts (runtime.css, icons.css, the brand css at the marker, studio.css, ui.css; runtime.js,
+     the engine, then the fork) are added by the script at the end of the body, each stamped ?v=<time of this page load>, so a plain
+     reload always gets the current files from a static server -->
+<meta name="brand-css">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script id="studio-data" type="application/json">{}</script>
+</head>
+<body>
+<div id="app"></div>
+<div class="toast" id="toast"></div>
+<input type="file" id="filePick" accept="image/*" hidden>
+
+<script>window.makeitbrandHost = true;</script>
+<script>
+  // helpers: load a local script / stylesheet and resolve when it has loaded (reject if it is missing). Every local URL gets
+  // ?v=<stamp>, one stamp per page load, so the browser never serves a heuristically cached copy after an edit; no build step.
+  // Scripts go in front of THIS script and stay in order (async=false), so "Save sheet" (which inlines every script[src] and
+  // link[rel=stylesheet] where it stands and keeps the original URL in data-src / data-href) writes them in boot order.
+  // In a saved sheet they are already inline: a file whose data-src / data-href matches (stamp ignored) is not loaded again.
+  const V = Date.now(), boot = document.currentScript, bare = u => u.replace(/\?v=\d+$/, '');
+  const stamped = u => u + (u.includes('?') ? '&' : '?') + 'v=' + V;
+  const inlined = (attr, u) => [...document.querySelectorAll(`[${attr}]`)].some(el => bare(el.getAttribute(attr)) === u);
+  const addJS = src => inlined('data-src', src) ? Promise.resolve() : new Promise((ok, no) => { const sc = document.createElement('script'); sc.async = false; sc.src = stamped(src); sc.onload = ok; sc.onerror = () => no(new Error('Could not load ' + src)); boot.parentNode.insertBefore(sc, boot); });
+  const addCSS = (href, before) => inlined('data-href', href) ? Promise.resolve() : new Promise((ok, no) => { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = stamped(href); l.onload = ok; l.onerror = () => no(new Error('Could not load ' + href)); before ? before.parentNode.insertBefore(l, before) : document.head.appendChild(l); });  // always in <head>: a saved sheet is read top to bottom, and a stylesheet written after this script would not be seen as already inline
+  // the page's own files, in the order they were once static tags: runtime and icons css, [brand css at the marker], editor css;
+  // runtime.js (after the host flag above), then the engine
+  const marker = document.querySelector('meta[name="brand-css"]');
+  const base = Promise.all([addCSS('../runtime.css', marker), addCSS('../brand/icons.css', marker), addCSS('engine/studio.css'), addCSS('engine/ui.css')]);
+  const engine = ['../runtime.js', 'engine/studio.js', 'engine/ui.js', 'engine/boards.js', 'engine/sheet.js'].reduce((p, f) => p.then(() => addJS(f)), Promise.resolve());
+  // a fork (studio/fork.js, optional) sets window.STUDIO_FORK; see TEMPLATES.md, "Fork". Missing file = the stock Studio.
+  Promise.all([base, engine]).then(() => addJS('fork.js').catch(() => {})).then(async () => {
+    const F = window.STUDIO_FORK, stockIds = ['single-post', 'carousel', 'quote', 'stat', 'announcement'];
+    const brandAt = document.querySelector('meta[name="brand-css"]');
+    if (!F) {
+      // the stock library. ?fork=event loads the fork-side example (an event template with shared
+      // content) to show how a fork looks
+      await addCSS('../brand/halcyon.css', brandAt);
+      await addJS('example.js');
+      Studio.registerBrand(Studio.boards.brandFromTokens({ id: 'halcyon', name: 'Halcyon' }));
+      Studio.boards.registerInline();
+      const demo = new URLSearchParams(location.search).get('fork') === 'event';
+      if (demo) await addJS('examples/event-set.js'); // a fork's shared content is declared before its templates
+      if (demo) await Studio.boards.loadShared(['examples/event.shared.json']);
+      await Studio.boards.load((demo ? [...stockIds.map(id => `templates/${id}.html`), 'examples/event.html'] : stockIds.map(id => `templates/${id}.html`)));
+      return Studio.boot();
+    }
+    if (F.name) document.title = F.name;
+    // order matters: runtime css (loaded above), brand css, fork css; engine js (loaded above), fork js,
+    // then shared kinds, then templates. The brand must be applied before brandFromTokens reads its tokens.
+    await addCSS(F.brand.css, brandAt);
+    for (const c of F.css || []) await addCSS(c);
+    for (const j of F.js || []) await addJS(j);
+    const b = F.brand;
+    Studio.registerBrand(Studio.boards.brandFromTokens({ id: b.id, name: b.name, url: b.url, series: b.series, strings: b.strings, grounds: b.grounds, stockGrounds: b.stockGrounds, groundLabels: b.groundLabels, studioName: F.name }));
+    Studio.boards.registerInline();
+    await Studio.boards.loadShared(F.shared || []);
+    const keep = F.stock === false ? [] : Array.isArray(F.stock) ? F.stock : F.stock === undefined || F.stock === true ? stockIds : [];
+    await Studio.boards.load([...keep.map(id => `templates/${id}.html`), ...(F.templates || [])]);
+    if (F.example) await addJS(F.example); // sets window.STUDIO_EXAMPLE, which ?example and the empty state read
+    Studio.boot();
+  }).catch(e => { console.error(e); document.getElementById('app').textContent = String(e.message || e); });
+</script>
+</body>
+</html>

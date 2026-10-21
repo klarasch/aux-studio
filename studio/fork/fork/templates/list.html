@@ -1,0 +1,37 @@
+<!-- List (AUX): a headline and up to four points on a rail. Own fields; may be a page of any carousel. -->
+<template data-template="list" data-slide data-group="Posts" data-label="List"
+          data-description="A headline and up to four points on a rail"
+          data-sizes="ig-post" data-supports="ig-post ig-square ig-story linkedin meetup">
+  <script type="application/json">
+  {
+    "preview": {"kicker": "UXMonday", "headline": "Jak začít s *výzkumem*", "p1": "Zeptejte se na cíl", "p2": "Najděte pět lidí", "p3": "Poslouchejte", "p4": "Sdílejte, co jste zjistili"},
+    "fields": [
+      {"key": "kicker", "label": "Kicker or series", "default": "Novinka"},
+      {"key": "headline", "label": "Headline"},
+      {"key": "p1", "label": "Point 1"},
+      {"key": "p2", "label": "Point 2"},
+      {"key": "p3", "label": "Point 3"},
+      {"key": "p4", "label": "Point 4"},
+      {"key": "image", "label": "Photo", "type": "image"}
+    ],
+    "parts": [
+      { "key": "logo",    "label": "Logo" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-p" data-v="spread" data-aux-backdrop="plain" data-choices-graphic="lines plain photo corner@ig-square corner@landscape chevron-low@story chevron-high@story photo-cut@story photo-chevron@story chevron-low@landscape chevron-high@landscape cross@landscape rotated@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="logo" data-variant="auto" data-part="logo"></div>
+    <div class="stack aux-top">
+      <h1 class="aux-h-sm" data-aux-fit data-steps="h2 h3" data-f="headline"></h1>
+      <div class="aux-timeline" data-group>
+        <p class="aux-ti" data-f="p1"></p><p class="aux-ti" data-f="p2"></p><p class="aux-ti" data-f="p3"></p><p class="aux-ti" data-f="p4"></p>
+      </div>
+    </div>
+  </section>
+
+</template>

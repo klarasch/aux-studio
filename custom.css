@@ -1,0 +1,250 @@
+/* AUX components: person, series lockup, date and place chips. Ours (see FORK.md); no upstream update touches this file.
+   Built on brand tokens and the runtime's board units (--body, --gap-*, --line), scoped under .board.
+   Rasterization-safe (PRIMITIVES.md section 12): flex, borders, radius, box-shadow, tokens; no filters, no url(). */
+
+/* ───────────── series lockup: logo mark | slash | SERIES ───────────── */
+.board .aux-lockup { display: flex; align-items: center; gap: .5em; flex: none; width: max-content; }
+.board .aux-lockup > .logo { height: 1.6em; }
+.board .aux-lockup__sep { width: calc(var(--line) * 1.4); height: 1.1em; background: var(--g-fg); opacity: .5; transform: skewX(-28deg); }
+.board .aux-lockup__series {
+  font-family: var(--font-display); font-weight: 600; text-transform: uppercase;
+  letter-spacing: .14em; color: var(--g-accent); font-size: .75em; line-height: 1;
+}
+
+/* ───────────── date and place chips ───────────── */
+.board .aux-chips { display: flex; flex-wrap: wrap; gap: .3em .4em; }
+.board .aux-chip {
+  display: inline-flex; align-items: center; max-width: 100%;
+  font-family: var(--font-body); font-weight: 500; font-size: calc(var(--body) * pow(var(--scale), -1));
+  line-height: 1.2; padding: .4em .7em; border-radius: 999px;
+  background: var(--surface); color: var(--g-fg);
+}
+.board .aux-chip[data-hl] { background: var(--aux-band); color: var(--aux-on-band); font-weight: 600; white-space: nowrap; }
+/* the divider between date and time (a thin slanted bar, never a middle dot) */
+.board .aux-chip > * + * { margin-left: .6em; padding-left: .6em; border-left: calc(var(--line) * 1.1) solid currentColor; }
+.board .aux-chip > * + *:empty { display: none; }
+.board .aux-chips[data-size="big"] { gap: .35em .45em; }
+.board .aux-chips[data-size="big"] .aux-chip { font-size: calc(var(--body) * .95); padding: .42em .8em; }
+.board .aux-chips[data-size="big"] .aux-chip[data-hl] { font-weight: 700; }
+
+/* ───────────── person: photo or initials, name, role ───────────── */
+.board .aux-speakers { display: flex; flex-direction: column; gap: var(--gap-sm); }
+.board .aux-person { display: flex; align-items: center; gap: .45em; min-width: 0; }
+.board .aux-person > .avatar {
+  flex: none; width: 3.3em; height: 3.3em; border-radius: calc(var(--r) * 1.1); object-fit: cover;
+  display: grid; place-items: center; overflow: hidden;
+  background: var(--surface); color: var(--g-accent);
+}
+.board .aux-person > span.avatar::before {
+  content: attr(data-initials); font-family: var(--font-display); font-weight: 600; font-size: 1.2em; line-height: 1;
+}
+.board .aux-person__txt { min-width: 0; }
+.board .aux-person__name { font-family: var(--font-body); font-weight: 600; font-size: .75em; line-height: 1.2; color: var(--g-fg); }
+.board .aux-person__role { font-size: .6em; line-height: 1.3; color: var(--g-muted); max-width: 16em; margin-top: .15em; }
+
+/* a single speaker gets the stage */
+.board .aux-person[data-layout="solo"] { gap: .65em; }
+.board .aux-person[data-layout="solo"] > .avatar { width: 5.2em; height: 5.2em; border-radius: calc(var(--r) * 1.3); }
+.board .aux-person[data-layout="solo"] > span.avatar::before { font-size: 1.75em; }
+.board .aux-person[data-layout="solo"] .aux-person__name { font-family: var(--font-display); font-weight: 500; font-size: 1.25em; line-height: 1.1; }
+.board .aux-person[data-layout="solo"] .aux-person__role { font-size: .83em; margin-top: .25em; }
+
+/* four or more: round photos with a ring, names under them */
+.board .aux-people-dots { display: flex; flex-wrap: wrap; gap: var(--gap-md) var(--gap-sm); }
+.board .aux-person[data-layout="dot"] { flex-direction: column; gap: .3em; width: 4.1em; text-align: center; }
+.board .aux-person[data-layout="dot"] > .avatar { width: 3.3em; height: 3.3em; border-radius: 50%; box-shadow: 0 0 0 calc(var(--line) * 2.2) var(--aux-ring); }
+.board .aux-person[data-layout="dot"] .aux-person__name { font-size: .6em; font-weight: 600; text-align: center; }
+
+/* the call to action: arrow in a disc, then the line */
+.board .aux-cta { display: flex; align-items: center; gap: .5em; font-family: var(--font-body); font-weight: 600; font-size: calc(var(--body) * pow(var(--scale), -1)); color: var(--g-accent); }
+.board .aux-cta::before {
+  content: "\2192"; display: inline-grid; place-items: center; flex: none;
+  width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--aux-band); color: var(--aux-on-band); font-weight: 700;
+}
+
+/* landscape event boards are short: set the type scale for a 628px-high board (the prototype's u=1) instead of the
+   runtime's social-landscape body, which suits portrait. Overridden here rather than in the template because
+   the runtime rewrites --k/--floor inline for custom sizes. */
+.board[data-kind="landscape"][data-aux-backdrop] { --kx: 1.5; --body: 24px; }
+
+/* landscape: text keeps to the left part of the board (the prototype's textW 58% and spkW 62%), clear of the
+   chevron band while text wrapping around shapes is not ported; speakers sit side by side */
+.board[data-kind="landscape"] .aux-top > :not(.aux-lockup) { max-width: 58%; }
+.board[data-kind="landscape"] .aux-speakers { max-width: 62%; }
+.board[data-kind="landscape"] .aux-speakers { flex-direction: row; flex-wrap: wrap; gap: var(--gap-sm) var(--gap-lg); }
+.board[data-kind="landscape"] .aux-person > .avatar { width: 2.6em; height: 2.6em; }
+.board[data-kind="landscape"] .aux-person[data-layout="solo"] > .avatar { width: 3.4em; height: 3.4em; }
+
+/* the graphic sits behind the content (custom.js inserts it as the board's first child), the texture behind it */
+.board:has(> .aux-backdrop) { isolation: isolate; }
+.board > .aux-backdrop { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; }
+.board > .aux-texture { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none; }
+
+/* the cover photo: a window shaped by the graphic (custom.js sets its box and clip-path); a full photo sits behind the
+   text, under a scrim in the ground's own colour */
+.board > figure.aux-cover { position: absolute; margin: 0; border-radius: 0; z-index: 1; }
+.board > .aux-shade { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: -2; pointer-events: none;
+  background: linear-gradient(to top, rgba(var(--aux-shade), .96) 0%, rgba(var(--aux-shade), .75) 38%, rgba(var(--aux-shade), .35) 70%, rgba(var(--aux-shade), .25) 100%); }
+
+/* paragraphs that wrap around the graphic's shapes contain their float (custom.js) */
+.board .wrapf { pointer-events: none; }
+.board .wrapbox { display: flow-root; }
+
+/* the lockup parked in the free corner when the text starts lower */
+.board .aux-lockup.parked { z-index: 2; }
+
+/* the prototype's frame padding (its SCALE[kind].pad) instead of the runtime's media profiles, and its dark ground */
+.board[data-kind="portrait"][data-aux-backdrop] { --safe-t: 100px; --safe-r: 100px; --safe-b: 100px; --safe-l: 100px; }
+.board[data-kind="square"][data-aux-backdrop] { --safe-t: 88px; --safe-r: 88px; --safe-b: 88px; --safe-l: 88px; }
+.board[data-kind="landscape"][data-aux-backdrop] { --safe-t: 60px; --safe-r: 60px; --safe-b: 60px; --safe-l: 60px; }
+.board[data-aux-backdrop]:not([data-ground="mint"]):not([data-ground="lime"]) { background-image: linear-gradient(160deg, #010B04 0%, #03140A 45%, #08240F 100%); }
+
+/* ───────────── save the date ─────────────
+   The date is the hero. Measures are the prototype's, per kind: its title size, gap1 and meta (SCALE in engine/studio.js),
+   and the ratios of templates/save-the-date.js (date x1.55, sub x.47, title x.6; landscape 1.7, .51, .56). */
+.board.aux-std, .board.aux-p, .board.aux-ev { --std-title: 118px; --std-g: 46px; --std-meta: 26px; --std-desc: 32px; --std-u: 1.25px; --std-date: 1.55; --std-sub: .47; --std-h1: .6; --std-w: 86%; }
+.board.aux-std[data-kind="square"], .board.aux-p[data-kind="square"], .board.aux-ev[data-kind="square"] { --std-title: 100px; --std-g: 34px; --std-meta: 24px; --std-desc: 29px; --std-u: 1.15px; --std-w: 84%; }
+.board.aux-std[data-kind="story"], .board.aux-p[data-kind="story"], .board.aux-ev[data-kind="story"] { --std-title: 132px; --std-g: 56px; --std-meta: 28px; --std-desc: 36px; --std-u: 1.25px; --std-w: 88%; }
+.board.aux-std[data-kind="landscape"], .board.aux-p[data-kind="landscape"], .board.aux-ev[data-kind="landscape"] { --std-title: 66px; --std-g: 22px; --std-meta: 18px; --std-desc: 21px; --std-u: 1px; --std-date: 1.7; --std-sub: .51; --std-h1: .56; --std-w: 52%; }
+.board.aux-std .aux-top { gap: 0; }
+.board.aux-std :where(.aux-top > *) { margin: 0; }
+.board.aux-std .eyebrow { margin-top: calc(var(--std-g) * 1.5); font-family: var(--font-display); font-weight: 600; letter-spacing: .12em; font-size: var(--std-meta); line-height: 1.45; color: var(--g-accent); }
+.board.aux-std .aux-bigdate {
+  margin-top: var(--std-g); font-family: var(--font-display); font-weight: 600; white-space: nowrap; color: var(--g-fg);
+  font-size: calc(var(--std-title) * var(--std-date)); line-height: 1.32; letter-spacing: -.03em;
+}
+.board.aux-std .aux-bigdate-sub {
+  margin-top: .45em; display: flex; flex-wrap: nowrap; font-family: var(--font-display); font-weight: 500; white-space: nowrap;
+  color: var(--g-accent); font-size: calc(var(--std-title) * var(--std-sub)); line-height: 1.25;
+}
+.board.aux-std .aux-bigdate-sub > * + * { margin-left: .6em; padding-left: .6em; border-left: calc(var(--line) * 1.1) solid var(--g-faint); }
+.board.aux-std .aux-bigdate-sub > *:empty { display: none; }
+.board.aux-std h1 {
+  margin-top: var(--std-g); font-family: var(--font-display); font-weight: 500; font-size: calc(var(--std-title) * var(--std-h1));
+  line-height: 1.06; letter-spacing: -.015em; max-width: var(--std-w); text-wrap: balance;
+}
+/* data-steps: a step down the scale when the board overflows */
+.board.aux-std h1.h2 { font-size: calc(var(--std-title) * var(--std-h1) / var(--scale)); }
+.board.aux-std .aux-chips { margin-top: var(--std-g); }
+.board.aux-std .aux-chip { font-size: var(--std-meta); padding: .39em .69em; }
+.board.aux-std .aux-cta { font-size: var(--std-meta); }
+
+/* ───────────── carousel and speaker pages ─────────────
+   The prototype's page designs (templates/carousel.js, spotlight.js): the title at the full size of the kind, the kicker,
+   description, agenda rows, swipe hint and the n/N pill. */
+.board.aux-p :where(.aux-top, .aux-bottom) { gap: 0; }
+.board.aux-p :where(.aux-top, .aux-bottom) > * { margin: 0; }
+.board.aux-p .eyebrow { margin-top: var(--std-g); font-family: var(--font-display); font-weight: 600; letter-spacing: .12em; font-size: var(--std-meta); line-height: 1.45; color: var(--g-accent); }
+.board.aux-p .aux-lockup + .eyebrow { margin-top: calc(var(--std-g) * 1.5); }
+.board.aux-p h1 { margin-top: var(--std-g); font-family: var(--font-display); font-weight: 500; font-size: var(--std-title); line-height: 1.06; letter-spacing: -.015em; max-width: var(--std-w); text-wrap: balance; }
+.board.aux-p .eyebrow + h1 { margin-top: var(--std-g); }
+.board.aux-p .aux-chips + h1 { margin-top: calc(var(--std-g) * 1.2); }
+.board.aux-p h1.h2 { font-size: calc(var(--std-title) / var(--scale)); }
+.board.aux-p h1.h3 { font-size: calc(var(--std-title) / var(--scale) / var(--scale)); }
+.board.aux-p .aux-chips { margin-top: calc(var(--std-g) * 1.4); }
+.board.aux-p .aux-chip { font-size: var(--std-meta); padding: .39em .69em; }
+.board.aux-p .aux-chips:first-child, .board.aux-p .aux-lockup + .aux-chips { margin-top: calc(var(--std-g) * 1.5); }
+.board.aux-p .aux-role { margin-top: calc(var(--std-g) * .8); font-size: var(--std-desc); line-height: 1.4; color: var(--g-muted); max-width: 100%; }
+.board.aux-p .aux-quote { margin-top: calc(var(--std-g) * 1.2); font-family: var(--font-display); font-weight: 500; font-size: calc(var(--std-desc) * 1.15); line-height: 1.25; color: var(--g-fg); }
+.board.aux-p .aux-quote::before { content: "\201E"; } .board.aux-p .aux-quote::after { content: "\201C"; }
+.board.aux-p .aux-swipe { margin-top: var(--std-g); font-family: var(--font-display); font-weight: 600; font-size: var(--std-meta); color: var(--g-accent); }
+.board.aux-p .aux-cta { margin-top: var(--std-g); font-size: var(--std-meta); }
+.board.aux-p .aux-pill { position: absolute; right: var(--safe-r); top: var(--safe-t); z-index: 3; font-family: var(--font-display); font-weight: 500; font-size: var(--std-meta); padding: calc(var(--std-u) * 8) calc(var(--std-u) * 16); border-radius: 999px; background: var(--surface); color: var(--g-fg); }
+.board.aux-p .aux-agenda { margin-top: calc(var(--std-g) * 1.2); max-width: var(--std-w); display: flex; flex-direction: column; gap: calc(var(--std-u) * 6); }
+.board.aux-p .aux-ag { display: grid; grid-template-columns: calc(var(--std-u) * 120) 1fr; gap: calc(var(--std-u) * 20); padding: calc(var(--std-u) * 18) 0; border-top: calc(var(--std-u) * 1.5) solid var(--surface); font-size: var(--std-desc); align-items: baseline; }
+.board.aux-p .aux-ag b { font-family: var(--font-display); font-weight: 600; color: var(--g-accent); }
+.board.aux-p .aux-lockup { flex: none; }
+
+/* event announcement: room between the lockup, chips, title and description (the prototype's gap1 rhythm), and between the
+   speakers and the call to action */
+.board.aux-ev .aux-top { gap: 0; }
+.board.aux-ev :where(.aux-top > *) { margin: 0; }
+.board.aux-ev .aux-chips { margin-top: calc(var(--std-g) * 1.6); }
+.board.aux-ev h1 { margin-top: calc(var(--std-g) * 1.6); }
+.board.aux-ev .lead { margin-top: calc(var(--std-g) * 1.2); }
+.board.aux-ev .aux-bottom { gap: var(--std-g); }
+.board.aux-ev .aux-speakers { gap: calc(var(--std-g) * .5); }
+
+/* news, recap and slides: description under the title, big quote, numbers, list with a rail, centred text pages */
+.board.aux-p .aux-desc { margin-top: calc(var(--std-g) * .85); font-size: var(--std-desc); line-height: 1.4; color: var(--g-muted); max-width: var(--std-w); text-wrap: pretty; white-space: pre-line; }
+.board.aux-p h1.aux-h-sm { font-size: calc(var(--std-title) * .8); }
+.board.aux-p h1.aux-h-sm.h2 { font-size: calc(var(--std-title) * .8 / var(--scale)); }
+.board.aux-p .aux-quote--big { margin-top: 0; max-width: var(--std-w); }
+.board.aux-p .aux-quote--big + .aux-role { margin-top: calc(var(--std-u) * 8); }
+.board.aux-p .aux-quote--big + .aux-role + h1 { margin-top: var(--std-g); }
+.board.aux-p .aux-stats { display: flex; flex-wrap: wrap; gap: calc(var(--std-u) * 14); margin-top: calc(var(--std-g) * 1.2); }
+.board.aux-p .aux-stat { font-family: var(--font-display); font-size: calc(var(--std-desc) * 1.05); padding: calc(var(--std-u) * 16) calc(var(--std-u) * 22); border-radius: calc(var(--std-u) * 14); border: calc(var(--std-u) * 1.5) solid var(--surface); background: var(--surface); }
+.board.aux-p .aux-timeline { display: flex; flex-direction: column; margin-top: calc(var(--std-g) * 1.4); max-width: var(--std-w); position: relative; }
+.board.aux-p .aux-ti { position: relative; padding: 0 0 calc(var(--std-u) * 34) calc(var(--std-u) * 46); font-size: calc(var(--std-desc) * 1.05); line-height: 1.35; }
+.board.aux-p .aux-ti::before { content: ""; position: absolute; left: calc(var(--std-u) * 5); top: .45em; width: calc(var(--std-u) * 14); height: calc(var(--std-u) * 14); border-radius: 50%; background: var(--g-accent); }
+.board.aux-p .aux-ti::after { content: ""; position: absolute; left: calc(var(--std-u) * 11); top: calc(.45em + var(--std-u) * 14); bottom: calc(var(--std-u) * -2); width: calc(var(--std-u) * 2); background: var(--g-muted); opacity: .5; }
+.board.aux-p .aux-ti:last-child::after { display: none; }
+.board.aux-p .aux-lockup + .aux-top, .board.aux-p .aux-lockup + .stack { margin-top: 0; }
+/* a photo that fades into the ground (photo-text slides) */
+.board > .aux-fade { position: absolute; z-index: -2; pointer-events: none; }
+
+/* single post, quote, big number */
+.board.aux-p .aux-bignum { font-family: var(--font-display); font-weight: 600; white-space: nowrap; color: var(--g-accent); font-size: calc(var(--std-title) * 1.55); line-height: 1.1; letter-spacing: -.03em; margin-top: var(--std-g); }
+.board.aux-p .aux-bignum + h1 { margin-top: calc(var(--std-g) * 1.1); }
+.board.aux-p .aux-person--quote { margin-top: calc(var(--std-g) * 1.3); }
+.board.aux-p .aux-person--quote .aux-person__name { font-size: var(--std-desc); font-weight: 600; }
+.board.aux-p .aux-person--quote .aux-person__role { font-size: calc(var(--std-desc) * .8); }
+.board.aux-p .aux-person--quote > .avatar { width: calc(var(--std-u) * 64); height: calc(var(--std-u) * 64); }
+
+/* a *highlighted* word takes the accent, in headings and in running text */
+.board :where(h1, h2, h3, .aux-desc, .aux-quote, .aux-ti, .aux-ag, .aux-role) strong { color: var(--g-accent); font-weight: inherit; }
+.board .aux-desc strong, .board .aux-ti strong { font-weight: 600; }
+
+/* a graphic that leaves the text a third of the board or less (custom.js sets data-aux-tight: photo cut on the feed, cross):
+   half the gaps, the event title at a size that holds one line, speakers side by side as on landscape (custom.js sets
+   data-aux-stack where side by side would reach a shape beside the column: they stay one under the other) */
+.board[data-aux-tight][data-kind="portrait"] { --std-g: 22px; }
+.board[data-aux-tight][data-kind="square"] { --std-g: 18px; }
+.board[data-aux-tight][data-kind="story"] { --std-g: 28px; }
+.board.aux-ev[data-aux-tight] h1 { font-size: calc(var(--std-title) * .62); line-height: 1.06; }
+.board[data-aux-tight]:not([data-aux-stack]) .aux-speakers { flex-direction: row; flex-wrap: wrap; gap: var(--gap-sm) var(--gap-lg); }
+.board[data-aux-tight] .aux-person > .avatar { width: 2.6em; height: 2.6em; }
+.board[data-aux-tight] .aux-person[data-layout="solo"] > .avatar { width: 2.6em; height: 2.6em; }
+.board.aux-ev[data-aux-tight] .aux-chips { margin-top: var(--std-g); }
+.board.aux-ev[data-aux-tight] .aux-lockup.parked + .aux-chips { margin-top: 0; }
+.board.aux-ev[data-aux-tight] h1 { margin-top: var(--std-g); }
+.board[data-aux-tight] .aux-person[data-layout="solo"] .aux-person__name { font-size: 1em; }
+/* three speakers in a tight band: smaller photos and less air between them, so they hold one row (or two short ones) */
+.board[data-aux-tight]:not([data-aux-stack]) .aux-speakers:has(> .aux-person:nth-child(3)) { gap: var(--gap-xs) 1em; }
+.board[data-aux-tight] .aux-speakers:has(> .aux-person:nth-child(3)) .aux-person > .avatar { width: 1.8em; height: 1.8em; }
+.board[data-aux-tight] .aux-speakers:has(> .aux-person:nth-child(3)) .aux-person > span.avatar::before { font-size: .8em; }
+/* the call-to-action row takes no gap once its content is hidden or dropped */
+.board.aux-ev .aux-bottom > .row:not(:has(> :not([data-dropped]))) { display: none; }
+
+/* speakers that would reach a shape beside the column (custom.js sets data-aux-stack, tight or not): round photos in two rows
+   at most half the column wide, a solo speaker at the size of a row */
+.board[data-aux-stack] .aux-people-dots { max-width: 52%; }
+.board[data-aux-stack] .aux-person[data-layout="solo"] > .avatar { width: 2.6em; height: 2.6em; }
+.board[data-aux-stack] .aux-person[data-layout="solo"] .aux-person__name { font-size: 1em; }
+/* four or more in a tight band: smaller round photos, so six hold one row */
+.board[data-aux-tight] .aux-people-dots { gap: var(--gap-sm) var(--gap-xs); }
+.board[data-aux-tight] .aux-person[data-layout="dot"] { width: 3.5em; }
+.board[data-aux-tight] .aux-person[data-layout="dot"] > .avatar { width: 2.3em; height: 2.3em; }
+.board[data-aux-tight] .aux-person[data-layout="dot"] > span.avatar::before { font-size: .9em; }
+
+/* ───────────── agenda (templates/agenda.html) ─────────────
+   The list is the hero: a title at half the kind's title size, rows that step down a size (a0 > a1 > a2, data-steps) before
+   the call to action, the chips and the eyebrow are dropped. A long label wraps inside its column. Landscape: title and
+   chips on the left, the rows on the right. */
+.board.aux-agendaboard h1.aux-h-agenda { font-size: calc(var(--std-title) * .5); line-height: 1.08; }
+.board.aux-agendaboard .aux-agenda { max-width: var(--std-w); }
+.board.aux-agendaboard .aux-ag > span { min-width: 0; overflow-wrap: anywhere; line-height: 1.25; }
+.board.aux-agendaboard .aux-ag > b { white-space: nowrap; }
+.board.aux-agendaboard .aux-agenda.a1 { gap: 0; }
+.board.aux-agendaboard .aux-agenda.a1 .aux-ag { font-size: calc(var(--std-desc) * .88); padding: calc(var(--std-u) * 11) 0; grid-template-columns: calc(var(--std-u) * 106) 1fr; }
+.board.aux-agendaboard .aux-agenda.a2 { gap: 0; }
+.board.aux-agendaboard .aux-agenda.a2 .aux-ag { font-size: calc(var(--std-desc) * .76); padding: calc(var(--std-u) * 6) 0; grid-template-columns: calc(var(--std-u) * 94) 1fr; }
+.board.aux-agendaboard .aux-bottom .aux-chips { margin-top: 0; }
+.board.aux-agendaboard .aux-bottom .aux-cta { margin-top: calc(var(--std-g) * .8); }
+.board.aux-agendaboard .aux-bottom .aux-chips:not(:has(> :not([data-dropped]))) { display: none; }
+.board.aux-agendaboard .aux-agsplit { display: grid; grid-template-columns: 40% 1fr; gap: calc(var(--std-u) * 56); align-items: start; }
+.board.aux-agendaboard .aux-agsplit > .aux-agenda { margin-top: 0; max-width: none; align-self: center; }
+.board.aux-agendaboard .aux-agsplit .aux-top h1 { max-width: 100%; }
+.board.aux-agendaboard .aux-agsplit .aux-agenda .aux-ag { grid-template-columns: calc(var(--std-u) * 84) 1fr; }
+.board.aux-agendaboard .aux-agsplit .aux-agenda.a0 .aux-ag { font-size: calc(var(--std-desc) * 1.2); padding: calc(var(--std-u) * 12) 0; }
+.board.aux-agendaboard .aux-ag-empty { margin: calc(var(--std-g) * 1.2) 0 0; font-size: var(--std-desc); color: var(--g-muted); }

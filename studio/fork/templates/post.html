@@ -1,0 +1,88 @@
+<!-- Statement (AUX): a headline with text. One page is a post, more are a carousel; every page may be of another template (Number, Quote, List, Photo, Speaker, Agenda...).
+     Variants: text at the bottom, text at the top, headline on top with text below, centred, closing. -->
+<template data-template="post" data-container data-group="Posts" data-label="Statement"
+          data-description="A headline with text. Place it at the bottom, the top, centred or split. Add pages of any other template"
+          data-sizes="ig-post" data-supports="ig-post ig-square ig-story linkedin meetup" data-pages="slides">
+  <script type="application/json">
+  {
+    "fields": [
+      { "key": "kicker", "label": "Kicker or series", "default": "Novinka" },
+      { "key": "slides", "label": "Slides", "type": "list", "itemLabel": "Slide", "max": 12, "newLayout": "headline",
+        "item": [
+          { "key": "headline", "label": "Headline" },
+          { "key": "text", "label": "Text", "type": "long" },
+          { "key": "cta", "label": "Call to action" },
+          { "key": "image", "label": "Photo", "type": "image" }
+        ],
+        "default": [
+          { "layout": "headline", "headline": "Řekni jednu věc, *jasně*", "text": "Jedna podpůrná věta, kvůli které se kliká.", "cta": "asociaceux.cz" }
+        ] }
+    ],
+    "parts": [
+      { "key": "logo",    "label": "Logo" },
+      { "key": "graphic", "label": "Graphic", "choices": "graphic", "fit": true },
+      { "key": "texture", "label": "Texture", "choices": "texture", "scope": "design" }
+    ]
+  }
+  </script>
+
+  <section class="board aux-p" data-layout="headline" data-label="Text at the bottom" data-v="spread" data-aux-backdrop="chevron-low corner lines" data-aux-anchor="bottom" data-choices-graphic="corner lines plain photo chevron-low@story chevron-high@story photo-cut@story photo-chevron@story chevron-low@landscape chevron-high@landscape cross@landscape rotated@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="logo" data-variant="auto" data-part="logo"></div>
+    <div class="stack aux-bottom">
+      <p class="eyebrow" data-f="/kicker"></p>
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+      <p class="aux-cta" data-f="cta" data-drop="2"></p>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-layout="split" data-label="Headline on top, text below" data-v="spread" data-aux-backdrop="rotated corner lines" data-choices-graphic="corner lines plain photo rotated chevron-low@story chevron-high@story cross@landscape photo-cut@story photo-chevron@story photo-rotated@story chevron-low@landscape chevron-high@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="stack aux-top">
+      <div class="logo" data-variant="auto" data-part="logo"></div>
+      <p class="eyebrow" data-f="/kicker"></p>
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+    </div>
+    <div class="stack aux-bottom">
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+      <p class="aux-cta" data-f="cta" data-drop="2"></p>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-layout="text-top" data-label="Text at the top" data-v="top" data-aux-backdrop="chevron-low corner lines" data-choices-graphic="corner lines plain photo chevron-low chevron-high@story cross@landscape rotated@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="logo" data-variant="auto" data-part="logo"></div>
+    <div class="stack aux-top">
+      <p class="eyebrow" data-f="/kicker"></p>
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-layout="center" data-label="Centred statement" data-v="center" data-aux-backdrop="lines corner plain" data-choices-graphic="lines corner plain photo chevron-low@landscape chevron-high@landscape cross@landscape rotated@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="stack aux-bottom">
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+    </div>
+  </section>
+
+  <section class="board aux-p" data-layout="closing" data-label="Closing" data-v="spread" data-aux-backdrop="chevron-low corner lines" data-aux-anchor="bottom" data-choices-graphic="corner lines plain photo chevron-low@story chevron-high@story photo-cut@story photo-chevron@story chevron-low@landscape chevron-high@landscape cross@landscape rotated@landscape photo-cut@landscape photo-chevron@landscape photo-rotated@landscape">
+    <figure class="media aux-cover" data-p="image"></figure>
+    <div class="aux-pill" data-show="/pageNo" data-format="pager"></div>
+    <div class="logo" data-variant="auto" data-part="logo"></div>
+    <div class="stack aux-bottom">
+      <p class="eyebrow" data-f="/kicker"></p>
+      <h1 data-aux-fit data-steps="h1 h2 h3" data-f="headline"></h1>
+      <p class="aux-desc" data-f="text" data-drop="1"></p>
+      <p class="aux-cta" data-f="cta" data-drop="2"></p>
+    </div>
+  </section>
+
+
+</template>

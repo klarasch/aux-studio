@@ -1,0 +1,44 @@
+/* demo iconset: 24x24 stroke icons, drawn for stroke: currentColor. One token per icon. */
+:root {
+  --icon-alert-triangle: url("assets/icons/alert-triangle.svg");
+  --icon-arrow-right: url("assets/icons/arrow-right.svg");
+  --icon-arrow-up-right: url("assets/icons/arrow-up-right.svg");
+  --icon-award: url("assets/icons/award.svg");
+  --icon-bar-chart: url("assets/icons/bar-chart.svg");
+  --icon-box: url("assets/icons/box.svg");
+  --icon-calendar: url("assets/icons/calendar.svg");
+  --icon-check: url("assets/icons/check.svg");
+  --icon-clock: url("assets/icons/clock.svg");
+  --icon-cloud: url("assets/icons/cloud.svg");
+  --icon-code: url("assets/icons/code.svg");
+  --icon-database: url("assets/icons/database.svg");
+  --icon-eye: url("assets/icons/eye.svg");
+  --icon-file-text: url("assets/icons/file-text.svg");
+  --icon-flag: url("assets/icons/flag.svg");
+  --icon-globe: url("assets/icons/globe.svg");
+  --icon-heart: url("assets/icons/heart.svg");
+  --icon-key: url("assets/icons/key.svg");
+  --icon-layers: url("assets/icons/layers.svg");
+  --icon-lightbulb: url("assets/icons/lightbulb.svg");
+  --icon-link: url("assets/icons/link.svg");
+  --icon-lock: url("assets/icons/lock.svg");
+  --icon-mail: url("assets/icons/mail.svg");
+  --icon-map-pin: url("assets/icons/map-pin.svg");
+  --icon-message-circle: url("assets/icons/message-circle.svg");
+  --icon-pie-chart: url("assets/icons/pie-chart.svg");
+  --icon-plus: url("assets/icons/plus.svg");
+  --icon-refresh: url("assets/icons/refresh.svg");
+  --icon-rocket: url("assets/icons/rocket.svg");
+  --icon-search: url("assets/icons/search.svg");
+  --icon-shield: url("assets/icons/shield.svg");
+  --icon-sliders: url("assets/icons/sliders.svg");
+  --icon-sparkles: url("assets/icons/sparkles.svg");
+  --icon-star: url("assets/icons/star.svg");
+  --icon-target: url("assets/icons/target.svg");
+  --icon-trending-down: url("assets/icons/trending-down.svg");
+  --icon-trending-up: url("assets/icons/trending-up.svg");
+  --icon-user: url("assets/icons/user.svg");
+  --icon-users: url("assets/icons/users.svg");
+  --icon-x: url("assets/icons/x.svg");
+  --icon-zap: url("assets/icons/zap.svg");
+}
