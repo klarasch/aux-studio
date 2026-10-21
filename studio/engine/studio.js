@@ -539,7 +539,8 @@ const bdList = (a, d) => {
 };
 // stickers: pasted PNGs placed per frame; x/y/w in % of the frame, ar = width/height
 function stickers(list) {
-  return (list || []).map((s, i) => `<div class="sticker" data-st="${i}" style="left:${s.x}%;top:${s.y}%;width:${s.w}%;aspect-ratio:${s.ar};background-image:url('${s.src}');${s.rot ? `transform:rotate(${s.rot}deg);` : ''}"></div>`).join('');
+  // data-gen: the makeitbrand runtime leaves it out of its layout checks (a sticker is not part of the board's composition)
+  return (list || []).map((s, i) => `<div class="sticker" data-gen data-st="${i}" style="left:${s.x}%;top:${s.y}%;width:${s.w}%;aspect-ratio:${s.ar};background-image:url('${s.src}');${s.rot ? `transform:rotate(${s.rot}deg);` : ''}"></div>`).join('');
 }
 // keep transparency for stickers (readImage makes JPEGs)
 function readPng(file, max = 900) {
@@ -568,7 +569,7 @@ function renderAsset(a, pick = 0) {
   d.__photoPath = a.tpl.coverPhoto === false ? null : 'coverPhoto';
   const list = bdList(a, d); d.__bd = ov.__bg || list[Math.min(pick, list.length - 1)];
   // a markup template renders a makeitbrand board: the board itself is the asset element
-  if (a.tpl.markup) return Studio.boards.render(a, d, h);
+  if (a.tpl.markup) { const html = Studio.boards.render(a, d, h), st = stickers(ov.__stickers); return st ? html.replace(/<\/section>\s*$/, st + '</section>') : html; } // a board carries its stickers too
   let body = a.tpl.render(d, a.fmt, T, a.item, h);
   // if the composition occupies the top of the text column (photo cut, chevron high…), start the text below it
   const zt = textZoneTop(a.fmt, h.__shapes || []);
@@ -884,10 +885,16 @@ async function inlineUrls(css, base) {
   }
   return css;
 }
+let saving = false;
 async function saveSheet() {
+  if (saving) return; saving = true; Studio.ui?.saveState?.();
+  try { await packSheet(); } finally { saving = false; Studio.ui?.saveState?.(); }
+}
+async function packSheet() {
   toast('Packing the sheet…');
   const doc = document.documentElement.cloneNode(true);
   doc.querySelectorAll('[data-ui-clear]').forEach(el => el.innerHTML = '');
+  const tst = doc.querySelector('#toast'); if (tst) { tst.textContent = ''; tst.classList.remove('on'); } // not the "Packing…" of this moment
   doc.querySelector('base')?.remove();
   // self-contained: inline the editor's own scripts and styles so the file opens anywhere
   // (fonts and the export libraries still come from their CDNs, so it needs to be online)
@@ -953,7 +960,7 @@ Studio._ = {
   postOf, postData, setContent, getContent, newPost, allowedFormats, sharedKinds, hasShared, changeTemplate, previewAsset, projSlug,
   changed, scheduleRender, render, persist, toast, save, afterListChange, pageItem, slideTemplate, setSlideTemplate, containerTpl, kindsOf,
   sharedItem, sharedFor, setFocus, itemLabel, itemDate, usersOf, newItem, removeItem, setUse,
-  toBlob, exportPdf, exportData, saveSheet, openFile, get unsaved() { return unsaved; }, setUnsaved, syncJson, toggleStrong,
+  toBlob, exportPdf, exportData, saveSheet, openFile, get unsaved() { return unsaved; }, get saving() { return saving; }, setUnsaved, syncJson, toggleStrong,
   set pickPath(v) { pickPath = v; }, get pickPath() { return pickPath; },
 };
 })();

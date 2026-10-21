@@ -32,10 +32,10 @@ function mount() {
   Object.assign(Studio.ui, { render, changed() {}, saveState, refreshPanels() {}, reset() {} });
   const list = $('#svList');
   list.addEventListener('click', onTap);
-  list.addEventListener('keydown', e => { if (editing && e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); editing.blur(); } });
+  list.addEventListener('keydown', e => { if (editing && e.key === 'Escape') { e.preventDefault(); editing.blur(); } }); // Enter is a new line; Esc or tapping away finishes
   saveState(); render();
 }
-function saveState() { const b = $('#svSave'); if (b) b.classList.toggle('dirty', X().unsaved); }
+function saveState() { const b = $('#svSave'); if (!b) return; b.classList.toggle('dirty', X().unsaved); b.disabled = X().saving; b.textContent = X().saving ? 'Saving…' : 'Save'; }
 
 /* ── render: a design, then a row per size (a carousel's pages scroll sideways) ── */
 function render() {
@@ -71,7 +71,9 @@ function startEdit(f, id) {
   if (editing === f) return;
   // the stored text, with *highlight* marks, so nothing is lost; it is drawn again when done
   const raw = X().getPath(X().assetData(id), f.dataset.f);
+  const float = f.querySelector(':scope > .wrapf'); // the text keeps wrapping around the brand's shapes while it is edited
   f.textContent = typeof raw === 'string' ? raw : '';
+  if (float) { float.contentEditable = 'false'; f.prepend(float); }
   f.removeAttribute('data-ph'); f.setAttribute('contenteditable', 'plaintext-only'); f.spellcheck = false;
   editing = f; f.focus();
   const r = document.createRange(); r.selectNodeContents(f); r.collapse(false); const s = getSelection(); s.removeAllRanges(); s.addRange(r);

@@ -140,6 +140,11 @@ function render() {
   }
   world.innerHTML = parts.join('');
   applyView();
+  if (pendingEdit) {
+    const pe = pendingEdit; pendingEdit = null;
+    const f = $(`#world .fr[data-id="${CSS.escape(pe.id)}"] [data-f="${CSS.escape(pe.path)}"]`);
+    if (f) { sel = { type: 'text', id: pe.id, path: pe.path }; startEdit(f); setCaret(f, Infinity); } // a later redraw carries it (keep)
+  }
   if (keep) {
     const f = $(`#world .fr[data-id="${CSS.escape(keep.id)}"] [data-f="${CSS.escape(keep.path)}"]`);
     if (f) { f.innerHTML = keep.html; f.removeAttribute('data-ph'); f.dataset.orig = keep.orig; f._origHtml = keep.origHtml; f.contentEditable = 'true'; editing = f; f.focus(); setCaret(f, keep.caret); }
@@ -238,7 +243,7 @@ function paintSelection() {
       if (sel.type === 'text') $$(`[data-f="${CSS.escape(sel.path)}"]`, fr).forEach(el => el.classList.add('el-sel'));
       if (sel.type === 'photo') $$(`[data-p="${CSS.escape(sel.path)}"]`, fr).forEach(el => el.classList.add('el-sel'));
       $$('.st-h', fr).forEach(x => x.remove());
-      if (sel.type === 'sticker') { const st = $(`.sticker[data-st="${sel.idx}"]`, fr); if (st) { st.classList.add('el-sel'); st.insertAdjacentHTML('beforeend', '<i class="st-h" title="Drag to resize"></i>'); } }
+      if (sel.type === 'sticker') { const st = $(`.sticker[data-st="${sel.idx}"]`, fr); if (st) { st.classList.add('el-sel'); st.insertAdjacentHTML('beforeend', '<i class="st-h" title="Drag to resize"></i><i class="st-r" title="Drag to rotate (⇧ in steps of 15°)"></i>'); } }
     }
   }
   if (sel?.type === 'post') $$(`#world .fr`).forEach(fr => { if (fr.dataset.id.startsWith(sel.key + '.')) fr.classList.add('sel'); });
@@ -270,7 +275,8 @@ function bindStage() {
     if (st) {
       const id = onFrame.dataset.id, idx = +st.dataset.st, s0 = ov(id).__stickers[idx], fr = onFrame.getBoundingClientRect();
       commitEdit(); if (!(sel.type === 'sticker' && sel.idx === idx)) select({ type: 'sticker', id, idx });
-      sdrag = { id, idx, resize: !!e.target.closest('.st-h'), x: e.clientX, y: e.clientY, s0: { ...s0 }, fw: fr.width, fh: fr.height, el: $(`#world .fr[data-id="${CSS.escape(id)}"] .sticker[data-st="${idx}"]`) };
+      const sb = st.getBoundingClientRect(), cx = sb.left + sb.width / 2, cy = sb.top + sb.height / 2;
+      sdrag = { id, idx, resize: !!e.target.closest('.st-h'), rotate: e.target.closest('.st-r') ? { cx, cy, a0: Math.atan2(e.clientY - cy, e.clientX - cx) } : null, x: e.clientX, y: e.clientY, s0: { ...s0 }, fw: fr.width, fh: fr.height, el: $(`#world .fr[data-id="${CSS.escape(id)}"] .sticker[data-st="${idx}"]`) };
       stage.setPointerCapture(e.pointerId); e.preventDefault(); return;
     }
     const p = e.target.closest('[data-p]');
@@ -283,9 +289,13 @@ function bindStage() {
     if (pan) { const dx = e.clientX - pan.x, dy = e.clientY - pan.y; if (Math.hypot(dx, dy) > 3) pan.moved = true; view.x = pan.vx + dx; view.y = pan.vy + dy; applyView(); return; }
     if (sdrag) {
       const dx = (e.clientX - sdrag.x) / sdrag.fw * 100, dy = (e.clientY - sdrag.y) / sdrag.fh * 100, s0 = sdrag.s0, el = $(`#world .fr[data-id="${CSS.escape(sdrag.id)}"] .sticker[data-st="${sdrag.idx}"]`);
-      if (sdrag.resize) sdrag.now = { ...s0, w: Math.max(4, Math.min(120, s0.w + dx)) };
+      if (sdrag.rotate) { // around the sticker's centre; snaps to straight within 3°, ⇧ gives steps of 15°
+        const { cx, cy, a0 } = sdrag.rotate; let rot = (s0.rot || 0) + (Math.atan2(e.clientY - cy, e.clientX - cx) - a0) * 180 / Math.PI;
+        rot = ((rot + 540) % 360) - 180; rot = e.shiftKey ? Math.round(rot / 15) * 15 : Math.abs(rot) < 3 ? 0 : Math.round(rot);
+        sdrag.now = { ...s0, rot };
+      } else if (sdrag.resize) sdrag.now = { ...s0, w: Math.max(4, Math.min(120, s0.w + dx)) };
       else sdrag.now = { ...s0, x: +(s0.x + dx).toFixed(2), y: +(s0.y + dy).toFixed(2) };
-      if (el) { el.style.left = sdrag.now.x + '%'; el.style.top = sdrag.now.y + '%'; el.style.width = sdrag.now.w + '%'; }
+      if (el) { el.style.left = sdrag.now.x + '%'; el.style.top = sdrag.now.y + '%'; el.style.width = sdrag.now.w + '%'; el.style.transform = sdrag.now.rot ? `rotate(${sdrag.now.rot}deg)` : ''; }
       positionToolbar(); return;
     }
     if (drag) {
@@ -309,7 +319,9 @@ function bindStage() {
     const ad = e.target.closest('.fr-add'); if (ad) { commitEdit(); pageOps(assetById(ad.dataset.addpage)).add(); return; }
     const fr = e.target.closest('.fr'); if (!fr) return;
     const id = fr.dataset.id;
-    const pe = e.target.closest('.panel.empty, figure.media[data-empty]');
+    // an empty photo slot under the click, even when other layers sit over it (a full-bleed photo window is behind the text and shapes)
+    const under = !e.target.closest('[data-f], [data-p]') ? document.elementsFromPoint(e.clientX, e.clientY).find(el => fr.contains(el) && el.matches('figure.media[data-empty]') && el.getClientRects().length) : null;
+    const pe = e.target.closest('.panel.empty, figure.media[data-empty]') || under;
     if (pe && !e.target.closest('[data-f]')) { commitEdit(); select({ type: 'photo', id, path: pe.dataset.p }); X.pickPath = id.split('.')[0] + '|' + pe.dataset.p; $('#filePick').click(); return; }
     if (e.target.closest('.flabel')) { commitEdit(); select({ type: 'frame', id }); return; }
     const f = e.target.closest('[data-f]'), p = e.target.closest('[data-p]');
@@ -330,8 +342,16 @@ function bindStage() {
   // inline edit keys
   stage.addEventListener('keydown', e => {
     if (!editing) return;
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); e.stopPropagation(); commitEdit(); }
-    if (e.key === 'Escape') { e.stopPropagation(); editing.innerHTML = editing._origHtml; commitEdit(); }
+    // Esc (or a click elsewhere) finishes and keeps what was typed; Enter is a new line. In a run of items (data-seq: a list's
+    // points, a row of numbers) Enter starts the next item and Backspace in an empty one removes it, as in a slide deck
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); commitEdit(); return; }
+    if (e.key === 'Enter') {
+      e.preventDefault(); e.stopPropagation();
+      const seq = !e.shiftKey && seqOf(editing);
+      if (seq) seqEnter(seq); else document.execCommand('insertLineBreak');
+      return;
+    }
+    if (e.key === 'Backspace' && !editing.textContent.trim()) { const seq = seqOf(editing); if (seq && (seq.i > 0 || seq.vals.slice(1).some(Boolean))) { e.preventDefault(); e.stopPropagation(); seqRemove(seq); return; } }
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') { e.preventDefault(); X.toggleStrong(); }
   });
   // a text on the canvas takes plain text and the highlight only: no pasted markup, no italics, no block breaks
@@ -378,7 +398,10 @@ function startEdit(f, ev) {
   commitEdit();
   const id = f.closest('.asset').dataset.id;
   const raw = X.getPath(X.assetData(id), f.dataset.f);
+  // the float that makes the text wrap around the brand's shapes (custom.js) stays, so the text does not jump while it is edited
+  const float = f.querySelector(':scope > .wrapf');
   if (typeof raw === 'string' || f.dataset.ph != null) f.innerHTML = toEditHtml(raw);
+  if (float && !f.contains(float)) { float.contentEditable = 'false'; f.prepend(float); }
   f.removeAttribute('data-ph');
   f.dataset.orig = fromEditHtml(f); f._origHtml = f.innerHTML;
   f.contentEditable = 'true';
@@ -390,6 +413,29 @@ function startEdit(f, ev) {
   const s = getSelection(); s.removeAllRanges(); s.addRange(r);
   renderToolbar();
 }
+/* items in a row (data-seq on their container): the texts are slots in order, filled from the first, and the editor shows only the
+   first empty one as the place to add the next */
+function seqOf(f) {
+  const box = f.closest('[data-seq]'); if (!box) return null;
+  const slots = [...box.querySelectorAll('[data-f]')].filter(s => s.closest('[data-seq]') === box), i = slots.indexOf(f); if (i < 0) return null;
+  const id = f.closest('.asset').dataset.id, paths = slots.map(s => s.dataset.f), d = X.assetData(id);
+  const vals = paths.map((p, k) => k === i ? fromEditHtml(f) : String(X.getPath(d, p) ?? ''));
+  return { id, paths, vals, i };
+}
+let pendingEdit = null; // a text to open for typing once the canvas is drawn again
+function seqWrite({ id, paths }, vals, next) {
+  const f = editing; editing = null; f.removeAttribute('contenteditable');
+  const d = X.assetData(id);
+  paths.forEach((p, k) => { if (vals[k] !== String(X.getPath(d, p) ?? '')) writeText(id, p, vals[k]); });
+  pendingEdit = { id, path: paths[next] }; X.changed({ form: true });
+}
+function seqEnter(q) {
+  const { vals, i } = q, j = vals.findIndex((v, k) => k > i && !v);
+  if (j < 0) { X.toast(`${vals.length} at most here`); return; }
+  for (let k = j; k > i + 1; k--) vals[k] = vals[k - 1]; vals[i + 1] = '';
+  seqWrite(q, vals, i + 1);
+}
+function seqRemove(q) { const vals = q.vals.slice(); vals.splice(q.i, 1); vals.push(''); seqWrite(q, vals, Math.max(0, q.i - 1)); }
 function commitEdit() {
   const f = editing; if (!f) return; editing = null;
   f.removeAttribute('contenteditable');
@@ -447,8 +493,9 @@ document.addEventListener('paste', e => {
   if (e.target.closest?.('input, textarea, [contenteditable]')) return;
   const item = [...(e.clipboardData?.items || [])].find(i => i.type.startsWith('image/')); if (!item) return;
   e.preventDefault();
-  if (!sel?.id) { X.toast('Select a frame first, then paste the image as a sticker'); return; }
-  addSticker(sel.id, item.getAsFile());
+  const id = sel?.id || (sel?.type === 'post' ? assets().find(a => a.post.id === sel.key)?.id : null); // a design selected: its first image
+  if (!id) { X.toast('Select an image first, then paste to add the picture as a sticker'); return; }
+  addSticker(id, item.getAsFile());
 });
 function pickSticker(id) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => i.files[0] && addSticker(id, i.files[0]); i.click(); }
 
@@ -507,7 +554,7 @@ function renderToolbar() {
   } else if (sel.type === 'text') {
     const isOv = o[sel.path] != null;
     const kind = X.kinds[sel.path.split('.')[0]];
-    html = editing ? `<button class="ftb-btn" data-t="strong" title="Highlight (⌘B)"><b>B</b> Highlight</button><button class="ftb-btn" data-t="done">Done ↵</button>${kind && !isOv ? `<span class="ftb-hint">shared: ${esc(kind.label)}</span>` : ''}`
+    html = editing ? `<button class="ftb-btn" data-t="strong" title="Highlight (⌘B)"><b>B</b> Highlight</button><button class="ftb-btn" data-t="done" title="Finish (Esc). Enter is a new line">Done</button>${kind && !isOv ? `<span class="ftb-hint">shared: ${esc(kind.label)}</span>` : ''}`
       : `<button class="ftb-btn" data-t="edit" title="Edit in place (Enter / double-click)">Edit</button><button class="ftb-btn" data-t="hide" title="Hide this text on this size only">Hide here</button>${isOv ? `<span class="ftb-hint">only this size</span><button class="ftb-btn" data-t="resetText" title="Back to the text all sizes share">Reset</button><button class="ftb-btn" data-t="promote" title="Use this text on every size">Use ${kind ? 'everywhere' : 'on all sizes'}</button>` : multi(a) || kind ? '<button class="ftb-btn" data-t="onlyHere" title="Give this size its own version of this text">Only this size</button>' : ''}${kind && !isOv ? `<span class="ftb-hint">shared: ${esc(kind.label)}</span>` : ''}`;
   } else if (sel.type === 'sticker') {
     html = `<button class="ftb-btn" data-t="stAll" title="Place the same sticker on every frame of this post">Copy to post</button><button class="ftb-btn ftb-ic" data-t="stDel" title="Delete (⌫)" aria-label="Delete">${IC.del}</button>`;
@@ -895,6 +942,18 @@ const IC = {
 };
 /* One inspector for a post and for anything selected inside it (an image, a text, a photo).
    Order: what is selected, template, content, images, sizes, show/hide, style, caption, export. */
+// the photos the selected image shows (or the design's first image): every image slot that is on view now, with add, replace and
+// remove. A photo window may sit under the text and shapes on the canvas, so it is always reachable here
+function photoSlots(pid, a, g) {
+  a = a || g?.assets[0]; if (!a) return '';
+  const fr = $(`#world .fr[data-id="${CSS.escape(a.id)}"]`); if (!fr) return '';
+  const seen = new Set(), rows = $$('figure.media[data-p], .panel[data-p]', fr).filter(el => el.getClientRects().length && getComputedStyle(el).display !== 'none' && !seen.has(el.dataset.p) && seen.add(el.dataset.p)).map(el => {
+    const path = el.dataset.p, url = X.getContent(pid, path), label = (a.tpl.labels || {})[path.split('.').at(-1)] || 'Photo';
+    return `<div class="slot"><div class="pv xs" data-pick="${pid}|${esc(path)}" style="${url ? `background-image:url('${url}')` : ''}" title="${url ? 'Replace' : 'Add photo'}">${url ? '' : '+'}</div>
+      <span>${esc(label)}</span><div class="btnrow"><button class="lnk" data-pick="${pid}|${esc(path)}">${url ? 'Replace…' : 'Add photo…'}</button>${url ? `<button class="lnk" data-rmphoto="${esc(path)}">Remove</button>` : ''}</div></div>`;
+  });
+  return rows.length ? `<div class="ip-sec"><div class="ip-t">Photo${rows.length > 1 ? 's' : ''}</div>${rows.join('')}</div>` : '';
+}
 function inspector(pid, id) {
   const p = S().posts.find(x => x.id === pid), t = X.templates[p.template], g = X.assetList().find(g => g.post.id === pid);
   const a = id ? layout.get(id).a : null, o = id ? ov(id) : {};
@@ -911,8 +970,7 @@ function inspector(pid, id) {
   } else if (a && sel.type === 'sticker') {
     const st = (o.__stickers || [])[sel.idx] || {};
     elem = `<div class="ip-sec el"><div class="ip-t">Selected sticker</div>
-      <label class="fld"><span>Size</span><input type="range" min="4" max="120" step="0.5" value="${st.w}" data-st="w"></label>
-      <label class="fld"><span>Rotation</span><input type="range" min="-45" max="45" step="1" value="${st.rot || 0}" data-st="rot"></label>
+      <p class="ip-note">Drag it to move. The corner handle resizes, the round one rotates (⇧ for steps of 15°). ⌫ deletes.${st.rot ? ` Rotated ${st.rot}°.` : ''}</p>
       <div class="btnrow"><button class="btn" data-el="stAll">Copy to all sizes</button><button class="btn danger" data-el="stDel">Delete</button></div></div>`;
   } else if (a && sel.type === 'photo') {
     const url = X.getContent(pid, sel.path);
@@ -957,7 +1015,7 @@ function inspector(pid, id) {
       ${themes.length > 1 ? `<label class="fld"><span>Theme</span><div class="seg">${themes.map(([k, th]) => `<button data-ftheme="${k}" aria-pressed="${k === curTheme}">${esc(th.label || k)}</button>`).join('')}</div></label>` : ''}
       ${hasMotion ? `<label class="chk urow"><input type="checkbox" data-fmotion ${o.__motion ? 'checked' : ''}> Motion <small>animated, exports MP4</small></label>` : ''}
       ${edits.length ? `<div class="scope"><span>${edits.length} text change${edits.length > 1 ? 's' : ''} on this size</span><button class="lnk" data-freset>Reset all</button></div>` : ''}
-      ${a.tpl.markup ? '' : `<div class="scope"><span>${(o.__stickers || []).length ? `${o.__stickers.length} sticker${o.__stickers.length > 1 ? 's' : ''}` : 'Stickers: paste a PNG (⌘V) or'}</span><button class="lnk" data-fsticker>Add sticker…</button></div>`}
+      ${`<div class="scope"><span>${(o.__stickers || []).length ? `${o.__stickers.length} sticker${o.__stickers.length > 1 ? 's' : ''}` : 'Stickers: paste a PNG (⌘V) or'}</span><button class="lnk" data-fsticker>Add sticker…</button></div>`}
     </div>`;
   }
   if (!a && t.markup) style = `<div class="ip-sec"><div class="ip-t">Look <small>all sizes</small></div>${lookSwatches(p.look || 'auto', 'plook', 'Template default')}</div>`;
@@ -979,6 +1037,7 @@ function inspector(pid, id) {
     ${t.markup ? '' : photosBlock(pid, id)}
     ${a ? '' : `<div class="ip-sec"><div class="ip-t">Sizes</div>${t.formats ? `<p class="ip-note">${esc(X.FORMATS[t.formats[0]].label)}: ${esc(X.FORMATS[t.formats[0]].hint)}.</p>` :
       `<div class="sizes">${allowed.map(k => { const f = X.FORMATS[k]; return `<label class="size ${p.formats.includes(k) ? 'on' : ''}"><input type="checkbox" data-psize="${k}" ${p.formats.includes(k) ? 'checked' : ''}><i class="fk fk-${f.kind}"></i><span><b>${esc(f.label)}</b><small>${esc(f.hint)}</small></span></label>`; }).join('')}</div>`}</div>`}
+    ${photoSlots(pid, a, g)}
     ${parts}
     ${style}
     <div class="ip-sec"><div class="ip-t">Caption <small>${p.fields.caption != null ? 'edited' : 'generated'}</small></div>
@@ -1044,6 +1103,7 @@ function bindInspector(R) {
     on('[data-pexport]', () => openExport({ scope: 'post' }));
     on('[data-pmotion]', () => { const g = X.assetList().find(g => g.post.id === p.id), all = g.assets.every(a => ov(a.id).__motion); g.assets.forEach(a => { const o = (s.overrides[a.id] ||= {}); if (all) delete o.__motion; else o.__motion = true; }); X.changed(); });
     on('[data-pdup]', () => duplicatePost(p.id));
+    R.querySelectorAll('[data-rmphoto]').forEach(b => b.onclick = () => { X.setContent(p.id, b.dataset.rmphoto, ''); X.changed({ form: true }); });
     R.querySelectorAll('[data-puse]').forEach(el => el.onchange = () => { X.setUse(p, el.dataset.puse, el.value); X.changed({ form: true }); });
     on('[data-pdel]', () => deletePost(p.id));
   }
@@ -1108,7 +1168,7 @@ function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''
 // the Save button says whether there is work that is only in this browser
 // ("Saved" only after a save in this session: an untouched new project or example has nothing to lose, and says Save)
 let savedHere = false;
-function saveState() { const b = $('#saveBtn'); if (!b) return; if (!X.unsaved && b.classList.contains('dirty')) savedHere = true; b.classList.toggle('dirty', X.unsaved); b.innerHTML = X.unsaved ? '<i class="dot"></i>Save' : savedHere ? 'Saved' : 'Save'; }
+function saveState() { const b = $('#saveBtn'); if (!b) return; b.disabled = X.saving; if (X.saving) { b.innerHTML = 'Saving…'; return; } if (!X.unsaved && b.classList.contains('dirty')) savedHere = true; b.classList.toggle('dirty', X.unsaved); b.innerHTML = X.unsaved ? '<i class="dot"></i>Save' : savedHere ? 'Saved' : 'Save'; }
 function openData() {
   const m = openModal(`<div class="sh-h"><b>Project</b><button class="ib" data-close>×</button></div>
     <div class="pj">

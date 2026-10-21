@@ -323,3 +323,10 @@ body.sheetv{margin:0;background:var(--e-canvas,#ececec);font-family:"Geist",syst
 .sv-img [data-f]{cursor:text}
 .sv-img [contenteditable]{outline:4px solid var(--e-sel,#2f6bff);outline-offset:6px}
 .sv-empty{color:var(--e-muted,#777);text-align:center;margin-top:30vh}
+/* a run of items (data-seq): of the empty ones, only the first shows in the editor, as the place to add the next */
+#world [data-seq] [data-ph] ~ [data-ph],
+#world [data-seq] [contenteditable] ~ [data-ph]{display:none}
+/* stickers on boards (a pasted PNG); handles: the corner resizes, the round one above rotates */
+.board .sticker{position:absolute;z-index:20;background:center/100% 100% no-repeat;transform-origin:50% 50%}
+.st-r{position:absolute;left:50%;top:calc(-28px*var(--inv));width:calc(14px*var(--inv));height:calc(14px*var(--inv));margin-left:calc(-7px*var(--inv));background:#fff;border:calc(2px*var(--inv)) solid var(--e-sel);border-radius:50%;cursor:grab}
+.st-r::after{content:"";position:absolute;left:50%;top:100%;width:calc(1.5px*var(--inv));height:calc(14px*var(--inv));background:var(--e-sel);transform:translateX(-50%)}
