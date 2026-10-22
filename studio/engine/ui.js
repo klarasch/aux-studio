@@ -1208,9 +1208,13 @@ function openExport(opts = {}) {
     ${hasSVG ? '<label class="chk urow"><input type="checkbox" data-ft="svg"> SVG <small>editable vectors for Figma / Penpot</small></label>' : ''}
     <label class="chk urow"><input type="checkbox" data-ft="pdf" checked> PDF <small>carousels as one document, for LinkedIn</small></label>
     ${hasMP4 ? '<label class="chk urow"><input type="checkbox" data-ft="mp4" checked> MP4 <small>frames with Motion on</small></label>' : ''}
+    <div class="ip-t">Size</div><div class="seg" id="exScale">${[1, 2, 4].map(k => `<button data-v="${k}">${k}×</button>`).join('')}</div>
+    <p class="ip-note" id="exPx"></p>
     <div class="ex-sum" id="exSum"></div>
     <div class="progress" hidden><div></div></div>
     <div class="btnrow"><span class="tb-sp"></span><button class="btn" data-close>Cancel</button><button class="btn primary" id="exGo">Export</button></div>`);
+  // pixel density of PNGs (and of the images inside a PDF, up to 2×): remembered in this browser
+  let scale = +(localStorage.getItem('studio:exportScale') || 1); if (![1, 2, 4].includes(scale)) scale = 1;
   const ids = () => scopes.find(s => s[0] === scope)[2];
   const types = () => $$('[data-ft]', m).filter(x => x.checked).map(x => x.dataset.ft);
   const plan = () => {
@@ -1223,11 +1227,15 @@ function openExport(opts = {}) {
   };
   const sum = () => {
     $$('#exScope button', m).forEach(b => b.setAttribute('aria-pressed', b.dataset.v === scope));
+    $$('#exScale button', m).forEach(b => b.setAttribute('aria-pressed', +b.dataset.v === scale));
+    const f0 = assetById(ids()[0])?.fmt;
+    $('#exPx', m).textContent = f0 ? `${f0.short || f0.label}: ${f0.w * scale} × ${f0.h * scale} px${scale > 1 ? `, files named @${scale}x` : ''}${scale === 4 ? '. Large: Safari may fail on tall sizes, Chrome is safer' : ''}` : '';
     const j = plan(), c = k => j.filter(x => x.kind === k).length;
     $('#exSum', m).textContent = j.length ? `${[c('png') && c('png') + ' PNG', c('svg') && c('svg') + ' SVG', c('pdf') && c('pdf') + ' PDF', c('mp4') && c('mp4') + ' MP4'].filter(Boolean).join(', ')}${j.length > 1 ? ', as one ZIP' : ''}` : 'Nothing to export with these options.';
     $('#exGo', m).disabled = !j.length;
   };
   $('#exScope', m).onclick = e => { const b = e.target.closest('button'); if (b) { scope = b.dataset.v; sum(); } };
+  $('#exScale', m).onclick = e => { const b = e.target.closest('button'); if (b) { scale = +b.dataset.v; try { localStorage.setItem('studio:exportScale', scale); } catch {} sum(); } };
   $$('[data-ft]', m).forEach(x => x.onchange = sum); sum();
   $('#exGo', m).onclick = async () => {
     const jobs = plan(), bar = $('.progress', m); bar.hidden = false; $('#exGo', m).disabled = true;
@@ -1236,10 +1244,10 @@ function openExport(opts = {}) {
       for (const [i, j] of jobs.entries()) {
         bar.firstElementChild.style.width = (i / jobs.length * 100) + '%';
         $('#exSum', m).textContent = `Rendering ${i + 1}/${jobs.length}: ${j.kind.toUpperCase()} ${j.a ? j.a.name : ''}`;
-        if (j.kind === 'png') { const r = await X.toBlob(j.a.id); files.push([r.name + '.png', r.blob]); }
+        if (j.kind === 'png') { const r = await X.toBlob(j.a.id, 'image/png', scale); files.push([r.name + '.png', r.blob]); }
         if (j.kind === 'svg') files.push([j.a.name + '.svg', new Blob([await window.StudioSVG.toSVG(j.a.id)], { type: 'image/svg+xml' })]);
         if (j.kind === 'mp4') { const b = await window.StudioAnimate.exportMp4(j.a.id); if (b instanceof Blob) files.push([j.a.name + '.mp4', b]); }
-        if (j.kind === 'pdf') { const lbl = X.slug(j.list[0].post.name || j.list[0].tpl.label), b = await X.exportPdf(j.list.map(a => a.id), lbl, { blob: true }); if (b) files.push([`${X.projSlug()}-${lbl}.pdf`, b]); }
+        if (j.kind === 'pdf') { const lbl = X.slug(j.list[0].post.name || j.list[0].tpl.label), b = await X.exportPdf(j.list.map(a => a.id), lbl, { blob: true, scale: Math.min(scale, 2) }); if (b) files.push([`${X.projSlug()}-${lbl}.pdf`, b]); }
       }
       bar.firstElementChild.style.width = '100%';
       if (files.length === 1) X.save(files[0][1], files[0][0]);

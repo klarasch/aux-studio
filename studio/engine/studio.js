@@ -829,9 +829,14 @@ async function renderNode(id) {
   await Promise.all([...node.querySelectorAll('img')].filter(i => !i.complete).map(i => new Promise(ok => { i.addEventListener('load', ok, { once: true }); i.addEventListener('error', ok, { once: true }); })));
   return { a, node, done: () => host.remove() };
 }
-async function toBlob(id, type = 'image/png') {
+// scale: pixels per CSS pixel (2 and 4 for retina and print); the file name says it (name@2x.png)
+async function toBlob(id, type = 'image/png', scale = 1) {
   const { a, node, done } = await renderNode(id);
-  try { return { name: a.name, blob: await htmlToImage[type === 'image/png' ? 'toBlob' : 'toJpeg'](node, { pixelRatio: 1, width: a.fmt.w, height: a.fmt.h }), fmt: a.fmt }; }
+  try {
+    const blob = await htmlToImage[type === 'image/png' ? 'toBlob' : 'toJpeg'](node, { pixelRatio: scale, width: a.fmt.w, height: a.fmt.h });
+    if (!blob) throw new Error(`The browser could not draw ${a.fmt.w * scale}×${a.fmt.h * scale} px; try a smaller size`);
+    return { name: a.name + (scale > 1 ? `@${scale}x` : ''), blob, fmt: a.fmt };
+  }
   finally { done(); }
 }
 function save(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); }
@@ -850,7 +855,7 @@ async function exportPdf(ids, label, opts = {}) {
   for (const [i, id] of ids.entries()) {
     toast(`Rendering ${i + 1}/${ids.length}…`);
     const { a, node, done } = await renderNode(id);
-    const url = await htmlToImage.toJpeg(node, { pixelRatio: 1, quality: .92, width: a.fmt.w, height: a.fmt.h }); done();
+    const url = await htmlToImage.toJpeg(node, { pixelRatio: opts.scale || 1, quality: .92, width: a.fmt.w, height: a.fmt.h }); done();
     const o = a.fmt.w > a.fmt.h ? 'l' : 'p';
     if (!pdf) pdf = new jspdf.jsPDF({ unit: 'px', format: [a.fmt.w, a.fmt.h], orientation: o, hotfixes: ['px_scaling'] }); else pdf.addPage([a.fmt.w, a.fmt.h], o);
     pdf.addImage(url, 'JPEG', 0, 0, a.fmt.w, a.fmt.h);
