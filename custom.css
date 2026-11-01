@@ -248,3 +248,12 @@
 .board.aux-agendaboard .aux-agsplit .aux-agenda .aux-ag { grid-template-columns: calc(var(--std-u) * 84) 1fr; }
 .board.aux-agendaboard .aux-agsplit .aux-agenda.a0 .aux-ag { font-size: calc(var(--std-desc) * 1.2); padding: calc(var(--std-u) * 12) 0; }
 .board.aux-agendaboard .aux-ag-empty { margin: calc(var(--std-g) * 1.2) 0 0; font-size: var(--std-desc); color: var(--g-muted); }
+
+/* ───────────── agenda rows without a time, events without a date ─────────────
+   A row whose time is empty has no <b> in the image, so its label would fall into the narrow time column: it takes the label
+   column and lines up with the others. When no row has a time the column goes. */
+.board.aux-p .aux-ag > span { grid-column: 2; }
+.board.aux-p .aux-agenda:not(:has(> .aux-ag > b:not([data-ph]))) .aux-ag { grid-template-columns: 1fr; }
+.board.aux-p .aux-agenda:not(:has(> .aux-ag > b:not([data-ph]))) .aux-ag > span { grid-column: 1; }
+/* "Termín brzy" in place of the big date: smaller, it is words */
+.board.aux-std .aux-bigdate[data-aux-nodate] { font-size: calc(var(--std-title) * var(--std-date) * .62); }

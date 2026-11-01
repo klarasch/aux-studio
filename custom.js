@@ -355,23 +355,36 @@
       f.style.cssText = `float:right;width:${w.toFixed(1)}px;height:${H.toFixed(1)}px;shape-outside:polygon(${[[w, 0], ...poly, [w, H]].map(([x, y]) => `${x.toFixed(1)}px ${y.toFixed(1)}px`).join(',')})`;
       return f;
     };
-    node.querySelectorAll(WRAP_SEL).forEach(e => {
+    // A float makes its paragraph taller, and a bottom-anchored column then moves every paragraph above it up (and the
+    // ones below it too, once those are wrapped): a polygon measured from the old position then sits on the wrong rows and
+    // leaves a blank line where the shape is not. So the position is measured again on every pass, and the whole sweep
+    // repeats until nothing moves.
+    let moved = 0;
+    const one = e => {
       if (e.isContentEditable || e.closest('.wrapf') || !e.getClientRects().length) return;
       e.classList.add('wrapbox');
-      const b = e.getBoundingClientRect(), x0 = (b.left - nb.left) * k, y0 = (b.top - nb.top) * k, w = b.width * k;
       let H = e.scrollHeight;
       for (let pass = 0; pass < 4; pass++) { // wrapping makes text taller: grow the float until it covers every line
-        e.querySelector(':scope > .wrapf')?.remove();
-        const f = build(x0, y0, w, H); if (!f) return;
-        e.prepend(f);
+        // measured with the previous float still in place (its width is the paragraph's, its top is where the paragraph sits now)
+        const old = e.querySelector(':scope > .wrapf'), b = e.getBoundingClientRect(), x0 = (b.left - nb.left) * k, y0 = (b.top - nb.top) * k, w = b.width * k;
+        const f = build(x0, y0, w, H); if (!f) { old?.remove(); return; }
+        old?.remove(); e.prepend(f);
         if (f_blocked) node._blocked = true;
         const lines = [...e.childNodes].filter(n => n !== f), r = document.createRange();
         r.setStartBefore(lines[0] || f); r.setEndAfter(lines.at(-1) || f);
-        const need = (r.getBoundingClientRect().bottom - b.top) * k;
-        if (need <= H + 2) break;
-        H = need + 4;
+        const eb = e.getBoundingClientRect(), need = (r.getBoundingClientRect().bottom - eb.top) * k, nowTop = (eb.top - nb.top) * k;
+        if (need <= H + 2 && Math.abs(nowTop - y0) < 1.5) break;
+        if (need > H + 2) H = need + 4;
       }
-    });
+    };
+    for (let sweep = 0; sweep < 2; sweep++) {
+      moved = 0; node._blocked = false;
+      const list = [...node.querySelectorAll(WRAP_SEL)];
+      list.forEach(e => { one(e); e._wt = (e.getBoundingClientRect().top - nb.top) * k; });
+      // a paragraph wrapped later may have moved one wrapped earlier
+      list.forEach(e => { if (e._wt != null && e.getClientRects().length) moved = Math.max(moved, Math.abs((e.getBoundingClientRect().top - nb.top) * k - e._wt)); });
+      if (moved < 1.5) break;
+    }
   }
 
   /* ── fit: a hero that still does not fit (overflow, or touching a shape) gives way a little at a time, titles first,

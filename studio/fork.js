@@ -11,13 +11,14 @@ window.STUDIO_FORK = {
     stockGrounds: ['bg'], groundLabels: { bg: 'Dark' },   // the stock Surface, Accent, Inverse and Art grounds have no tokens for the AUX graphics
     strings: {
       days: ['neděle', 'pondělí', 'úterý', 'středa', 'čtvrtek', 'pátek', 'sobota'],
+      noDate: 'Termín brzy',                       // shown in place of the date while an event has none
       speaksMany: 'Mluví na', speaksOne: 'Přednáší na',
       saveTheDate: 'Save the date', agenda: 'Program', swipe: 'Listuj →',
       thanks: s => `Díky za ${s}!`, speakers: 'Speakeři', join: 'Přijď',
     },
   },
   css: ['../custom.css'],
-  js: ['../custom.js'],
+  js: ['../fork-events.js', '../custom.js'],
   shared: ['fork/shared/event.json'],
   templates: ['fork/templates/post.html',   // the generic post first, then the templates that read the shared event
               'fork/templates/number.html', 'fork/templates/quote.html', 'fork/templates/list.html', 'fork/templates/photo.html',

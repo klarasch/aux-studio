@@ -64,6 +64,7 @@ const BASE = {
   speakers: [], agenda: [], photos: [], slides: [], posts: null, overrides: {},
 };
 let S, B, T; // state, brand, active theme tokens
+let stashed = null; // this browser's unsaved copy, kept aside when the file it came from was replaced by a newer one
 // autosave key: the page's path, the same for /studio/ and /studio/index.html (an older key is read once, see loadInitial)
 const KEY = 'studio:' + location.pathname.replace(/index\.html$/, ''), OLD_KEY = 'studio:' + location.pathname;
 /* Saved or not: autosave keeps work in this browser only; the file ("Save") is the real save. `unsaved` is true from the first change
@@ -299,11 +300,17 @@ function loadInitial() {
   const m = location.hash.match(/#d=([^&]+)/);
   if (m) { try { return normalize(JSON.parse(b64dec(m[1]))); } catch (e) { console.warn('Bad #d payload', e); } }
   const emb = embedded(), saved = store.get(KEY) || (OLD_KEY !== KEY ? store.get(OLD_KEY) : null);
+  stashed = store.get(KEY + ':stash'); // kept aside on an earlier visit and not answered yet
   if (saved && (!emb || saved.__rev === emb.__rev)) { unsaved = !!saved.__unsaved; return normalize(saved); }
+  // the file is newer than this browser's copy: open the file, but edits made here and never saved to a file are kept aside
+  // (Studio.ui offers to bring them back) instead of being dropped without a word
+  if (saved && saved.__unsaved) { stashed = saved; store.set(KEY + ':stash', saved); }
   if (emb) return normalize(emb);
   // a new project starts empty; ?example loads the example set when the page ships one
   return normalize(/[?&]example\b/.test(location.search) && window.STUDIO_EXAMPLE || {});
 }
+function restoreStash() { if (!stashed) return false; const d = stashed; stashed = null; store.set(KEY + ':stash', null); S = normalize(d); unsaved = true; persist(); return true; }
+function dropStash() { stashed = null; store.set(KEY + ':stash', null); }
 function persist() { const ok = store.set(KEY, { ...S, __rev: embedded()?.__rev, __unsaved: unsaved }); if (!ok) console.warn('Autosave skipped (storage full or blocked)'); }
 function setUnsaved(v) { unsaved = v; persist(); Studio.ui?.saveState?.(); }
 // open a project from a file: a saved sheet (.html, its project is in #studio-data) or the project's JSON
@@ -483,9 +490,14 @@ function kindsOf(p) {
 function itemTag(p) {
   return kindsOf(p).filter(k => kinds[k] && S.shared[k].length > 1).map(k => { const v = sharedItem(p, k); return '-' + (itemDate(k, v) || slug(itemLabel(k, v)).slice(0, 24)); }).join('');
 }
+// designs in the order they go out: by publish date (post.date, YYYY-MM-DD) once any design has one; undated designs follow, in their order
+function postsInOrder() {
+  if (!S.posts.some(p => p.date)) return S.posts;
+  return S.posts.map((p, i) => [p.date || '9999', i, p]).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : a[1] - b[1]).map(x => x[2]);
+}
 function assetList() {
   const out = [], taken = new Map();
-  for (const p of S.posts) {
+  for (const p of postsInOrder()) {
     const tpl = templates[p.template]; if (!tpl) continue;
     let stem = `${projSlug()}${itemTag(p)}-${slug(p.name || tpl.label)}`; // two designs of one name would overwrite each other's files
     const n = (taken.get(stem) || 0) + 1; taken.set(stem, n); if (n > 1) stem += '-' + n;
@@ -965,6 +977,7 @@ Studio._ = {
   postOf, postData, setContent, getContent, newPost, allowedFormats, sharedKinds, hasShared, changeTemplate, previewAsset, projSlug,
   changed, scheduleRender, render, persist, toast, save, afterListChange, pageItem, slideTemplate, setSlideTemplate, containerTpl, kindsOf,
   sharedItem, sharedFor, setFocus, itemLabel, itemDate, usersOf, newItem, removeItem, setUse,
+  postsInOrder, get stashed() { return stashed; }, restoreStash, dropStash,
   toBlob, exportPdf, exportData, saveSheet, openFile, get unsaved() { return unsaved; }, get saving() { return saving; }, setUnsaved, syncJson, toggleStrong,
   set pickPath(v) { pickPath = v; }, get pickPath() { return pickPath; },
 };

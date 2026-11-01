@@ -243,9 +243,10 @@ function settle(node) {
   const mib = window.makeitbrand;
   if (!mib || !mib.decorate) { console.warn('[studio] makeitbrand runtime not loaded in host mode'); return true; }
   // an image slot nobody filled shows in the editor (as a place to drop a photo) but never exports
-  const out = node.closest('[data-export]'), thumb = node.closest('.tplc-pv');
-  if (out) node.querySelectorAll('figure.media[data-p]').forEach(m => { if (!m.querySelector('img')) m.remove(); });
-  if (out || thumb) { // placeholders for empty texts are an editor affordance only
+  // a read-only view of the result (the phone sheet view, data-preview) lays the board out exactly as its export does
+  const out = node.closest('[data-export]'), preview = out || node.closest('[data-preview]'), thumb = node.closest('.tplc-pv');
+  if (preview) node.querySelectorAll('figure.media[data-p]').forEach(m => { if (!m.querySelector('img')) m.remove(); });
+  if (preview || thumb) { // placeholders for empty texts are an editor affordance only
     node.querySelectorAll('[data-ph]').forEach(e => e.remove());
     [...node.querySelectorAll('[data-group]')].reverse().forEach(g => { if (!g.children.length) g.remove(); });
   }

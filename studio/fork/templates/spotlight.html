@@ -26,10 +26,12 @@
       <p class="eyebrow"><span data-show="/event.series" data-format="speaks"></span></p>
       <h1 data-aux-fit data-steps="h1 h2" data-f="name"></h1>
       <p class="aux-role" data-show="role company" data-join=", " data-drop="3"></p>
-      <p class="aux-quote" data-part="talk" data-f="/event.title"></p>
+      <p class="aux-quote" data-part="talk" data-f="talk" data-if="talk"></p>
+      <p class="aux-quote" data-part="talk" data-f="/event.title" data-if-not="talk"></p>
       <div class="aux-chips" data-group>
         <span class="aux-chip" data-hl data-group>
           <span data-show="/event.date" data-format="date"></span>
+          <span data-aux-nodate data-if-not="/event.date"></span>
           <span data-f="/event.time"></span>
         </span>
         <span class="aux-chip" data-part="place" data-show="/event.venue /event.city" data-join=", "></span>
@@ -46,10 +48,12 @@
       <p class="eyebrow"><span data-show="/event.series" data-format="speaks"></span></p>
       <h1 data-aux-fit data-steps="h1 h2" data-f="name"></h1>
       <p class="aux-role" data-show="role company" data-join=", " data-drop="3"></p>
-      <p class="aux-quote" data-part="talk" data-f="/event.title"></p>
+      <p class="aux-quote" data-part="talk" data-f="talk" data-if="talk"></p>
+      <p class="aux-quote" data-part="talk" data-f="/event.title" data-if-not="talk"></p>
       <div class="aux-chips" data-group>
         <span class="aux-chip" data-hl data-group>
           <span data-show="/event.date" data-format="date"></span>
+          <span data-aux-nodate data-if-not="/event.date"></span>
           <span data-f="/event.time"></span>
         </span>
         <span class="aux-chip" data-part="place" data-show="/event.venue /event.city" data-join=", "></span>

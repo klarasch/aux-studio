@@ -70,6 +70,17 @@ function mount() {
   });
   refreshPanels(); render(); recordNow();
   requestAnimationFrame(() => fitAll());
+  if (X.stashed) offerStash();
+}
+// the file was updated since this browser last edited it, and those edits were never saved to a file: say so and offer them back
+function offerStash() {
+  const st = X.stashed, n = (st.posts || []).length;
+  const m = openModal(`<div class="sh-h"><b>This file was updated</b><button class="ib" data-close>×</button></div>
+    <p class="ip-note">It changed since you last edited it in this browser, and those edits (${n} design${n === 1 ? '' : 's'}) were not saved to a file.
+    The updated file is open now. You can bring your edits back instead; the update is then replaced by them.</p>
+    <div class="btnrow"><button class="btn primary" data-keepfile>Keep the updated file</button><button class="btn" data-restore>Bring back my edits</button></div>`);
+  m.querySelector('[data-keepfile]').onclick = () => { X.dropStash(); closeModal(); };
+  m.querySelector('[data-restore]').onclick = () => { X.restoreStash(); closeModal(); sel = null; X.changed({ form: true }); requestAnimationFrame(fitAll); };
 }
 function reset() { sel = null; }
 
@@ -206,6 +217,7 @@ function applyView() {
   const w = $('#world'); if (!w) return;
   w.style.transform = `translate(${view.x}px,${view.y}px) scale(${view.z})`;
   w.style.setProperty('--inv', 1 / view.z);
+  w.classList.toggle('far', view.z < .1); // size labels and "+" tiles would cover the pages: hidden, design titles stay
   $('#zLabel').textContent = Math.round(view.z * 100) + '%';
   positionToolbar();
 }
@@ -219,11 +231,15 @@ function fitRect(x, y, w, h, pad = 60) {
   const z = Math.min(1.2, (r.width - pad * 2) / w, (r.height - pad * 2) / h);
   view.z = Math.max(.04, z); view.x = (r.width - w * view.z) / 2 - x * view.z; view.y = (r.height - h * view.z) / 2 - y * view.z; applyView();
 }
+const FIT_MIN = .12; // below this, "fit all" stops shrinking: a big project shows its top at a readable size and scrolls
 function fitAll() {
   if (!layout.size) return;
   let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
   for (const gl of groupsLayout) { x1 = Math.min(x1, gl.x); y1 = Math.min(y1, gl.y); x2 = Math.max(x2, gl.x + gl.w); y2 = Math.max(y2, gl.y + gl.h); }
-  fitRect(x1, y1, x2 - x1, y2 - y1);
+  const r = $('#stage').getBoundingClientRect(), pad = 60, w = x2 - x1, h = y2 - y1;
+  if (Math.min(1.2, (r.width - pad * 2) / w, (r.height - pad * 2) / h) >= FIT_MIN) { fitRect(x1, y1, w, h); return; }
+  view.z = Math.max(FIT_MIN, Math.min(1.2, (r.width - pad * 2) / w));
+  view.x = Math.max(pad, (r.width - w * view.z) / 2) - x1 * view.z; view.y = pad - y1 * view.z; applyView();
 }
 function zoomToFrame(id) { const L = layout.get(id); if (L) fitRect(L.x, L.y, L.w, L.h, 90); }
 function zoomToGroup(pid) { const gl = groupsLayout.find(g => g.post.id === pid); if (gl) fitRect(gl.x, gl.y, gl.w, gl.h, 50); }
@@ -637,18 +653,19 @@ function sharedSections() {
 }
 function renderLayers() {
   const L = $('#left'); if (!L) return;
-  const groups = X.assetList(), shared = sharedSections();
+  const groups = X.assetList(), shared = sharedSections(), dated = groups.some(g => g.post.date);
   // two lists, each with its own scroll: designs on top, shared content pinned under it with its "+ New" buttons always in reach
   const at = { list: $('.lp-list', L)?.scrollTop || 0, items: $('.lp-items', L)?.scrollTop || 0 };
   L.innerHTML = `
     <div class="lp-top"><div class="lp-h">Designs <span class="lp-sub">${groups.length || ''}</span></div>
       <button class="btn primary lp-new" id="addPost"><svg viewBox="0 0 20 20" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M10 4v12M4 10h12"/></svg>New design</button></div>
     <div class="lp-sec lp-list">
-      ${groups.map(g => {
+      ${groups.map((g, gi) => {
         const p = g.post, open = !collapsed.has(p.id), on = sel?.type === 'post' && sel.key === p.id;
-        return `<div class="post ${on ? 'on' : ''}" data-post="${p.id}">
-          <div class="post-h"><b class="tw" data-tw="${p.id}">${open ? '▾' : '▸'}</b><span>${esc(g.label)}</span><em>${g.assets.length}</em><button class="ly-x post-x" data-delpost="${p.id}" title="Delete design (⌫)">×</button></div>
-          <div class="post-sz">${p.formats.map(fmtChip).join('')}${X.kindsOf(p).filter(k => X.kinds[k] && X.S.shared[k].length > 1).map(k => `<span class="post-it" title="${esc(X.kinds[k].label)}">${esc(X.itemLabel(k, X.sharedItem(p, k)))}</span>`).join('')}</div></div>
+        const wk = dated ? weekOf(p.date) : '', head = dated && (gi === 0 || weekOf(groups[gi - 1].post.date) !== wk) ? `<div class="lp-week">${esc(wk || 'No date')}</div>` : '';
+        return `${head}<div class="post ${on ? 'on' : ''}" data-post="${p.id}">
+          <div class="post-h"><b class="tw" data-tw="${p.id}">${open ? '▾' : '▸'}</b><span title="${esc(g.label)}">${esc(g.label)}</span><em>${g.assets.length}</em><button class="ly-x post-x" data-delpost="${p.id}" title="Delete design (⌫)">×</button></div>
+          <div class="post-sz">${p.date ? `<time>${esc(dayOf(p.date))}</time>` : ''}${p.formats.map(fmtChip).join('')}${X.kindsOf(p).filter(k => X.kinds[k] && X.S.shared[k].length > 1).map(k => `<span class="post-it" title="${esc(X.kinds[k].label)}">${esc(X.itemLabel(k, X.sharedItem(p, k)))}</span>`).join('')}</div></div>
         ${open ? sizeRows(g).flat().map(a => { const o = ov(a.id), here = sel?.id === a.id; return `<div class="ly ly-frame ${here && sel.type === 'frame' ? 'on' : ''} ${here ? 'open' : ''}" data-frame="${a.id}"><i class="fk fk-${a.fmt.kind}"></i><span>${esc(a.fmt.short || a.fmt.label)}${a.item.label ? ` <small>${esc(a.item.label)}</small>` : ''}</span>${o.__motion ? '<em title="Motion">◷</em>' : ''}</div>${here ? layerRows(a) : ''}`; }).join('') : ''}`;
       }).join('') || '<p class="ip-note lp-none">No designs yet.</p>'}
     </div>
@@ -667,6 +684,15 @@ function renderLayers() {
     const ly = e.target.closest('[data-layer]'); if (ly) { const [type, id, path] = ly.dataset.layer.split('|'); select({ type, id, path }); return; }
     const f = e.target.closest('[data-frame]'); if (f) { const id = f.dataset.frame; select({ type: 'frame', id }); e.detail >= 2 ? zoomToFrame(id) : ensureVisible(id); }
   };
+}
+// a design's publish date in the left panel: "Mon 2 Nov", under a heading per week ("2 to 8 Nov"), in the browser's language
+const dayOf = d => new Date(d + 'T12:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short' });
+function weekOf(d) {
+  if (!d) return '';
+  const t = new Date(d + 'T12:00'), mon = new Date(t); mon.setDate(t.getDate() - (t.getDay() + 6) % 7);
+  const sun = new Date(mon); sun.setDate(mon.getDate() + 6);
+  const f = x => x.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
+  return `${f(mon)} to ${f(sun)}`;
 }
 // the layers of the selected image: its texts and images, top to bottom, as they sit on the canvas
 function layerRows(a) {
@@ -1026,9 +1052,10 @@ function inspector(pid, id) {
   const sharedUses = [((t.uses || []).length || t.facts) && ['event', 'Details'], needs.includes('speakers') && ['speakers', 'Speakers'], needs.includes('agenda') && ['agenda', 'Agenda'], needs.includes('photos') && ['photos', 'Photos']].filter(Boolean);
   const motion = g.assets.filter(x => ov(x.id).__motion).length;
 
-  return `<div class="ip-h ip-head"><input class="ip-name" data-pname value="${esc(p.name || t.label)}" title="Rename">
+  return `<div class="ip-h ip-head"><textarea class="ip-name" data-pname rows="1" title="Rename">${esc(p.name || t.label)}</textarea>
       <button class="ib" data-pdup title="Duplicate">${IC.dup}</button><button class="ib danger" data-pdel title="Delete (⌫)">${IC.del}</button></div>
     <div class="ip-sub">${a ? `<b>${esc(a.fmt.label)}</b> ${a.fmt.w}×${a.fmt.h}${a.item.label ? ', ' + esc(a.item.label) : ''} <button class="use" data-gopost="${pid}">All sizes</button>` : `${g.assets.length} image${g.assets.length === 1 ? '' : 's'}, all sizes selected`}</div>
+    ${a ? '' : `<div class="ip-sec ip-when"><label class="fld"><span>Publish on</span><input type="date" data-pdate value="${esc(p.date || '')}"></label>${p.date ? '<button class="lnk" data-pdateclear>No date</button>' : ''}</div>`}
     ${elem}
     ${slide}
     ${cont ? '' : `<div class="ip-sec"><div class="ip-t">Template</div><select data-ptpl>${[...new Set(X.order.map(k => X.templates[k].group || ''))].map(g => { const o = X.order.filter(k => (X.templates[k].group || '') === g).map(k => `<option value="${k}" ${k === p.template ? 'selected' : ''}>${esc(X.templates[k].label)}</option>`).join(''); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join('')}</select>
@@ -1080,7 +1107,9 @@ function bindInspector(R) {
   const p = pid ? s.posts.find(x => x.id === pid) : null;
   const on = (q, fn) => { const el = R.querySelector(q); if (el) el.onclick = fn; };
   if (p) {
-    const nm = R.querySelector('[data-pname]'); if (nm) nm.oninput = () => { p.name = nm.value; X.changed(); };
+    const nm = R.querySelector('[data-pname]'); if (nm) { nm.oninput = () => { nm.value = nm.value.replace(/\n/g, ' '); p.name = nm.value; X.changed(); }; nm.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); nm.blur(); } }; }
+    const pd = R.querySelector('[data-pdate]'); if (pd) pd.onchange = () => { if (pd.value) p.date = pd.value; else delete p.date; X.changed({ form: true }); };
+    const pdc = R.querySelector('[data-pdateclear]'); if (pdc) pdc.onclick = () => { delete p.date; X.changed({ form: true }); };
     const tp = R.querySelector('[data-ptpl]'); if (tp) tp.onchange = () => { X.changeTemplate(p.id, tp.value); sel = { type: 'post', key: p.id }; X.changed({ form: true }); renderInspector(); X.toast('Template changed. Matching texts and images were kept'); };
     R.querySelectorAll('[data-psize]').forEach(el => el.onchange = () => { const k = el.dataset.psize; p.formats = X.allowedFormats(X.templates[p.template]).filter(f => f === k ? el.checked : p.formats.includes(f)); X.changed({ form: true }); });
     R.querySelectorAll('[data-pf]').forEach(el => el.addEventListener('input', () => { p.fields[el.dataset.pf] = el.value; X.changed(); }));

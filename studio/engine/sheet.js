@@ -48,7 +48,7 @@ function render() {
       const row = g.assets.filter(a => a.fk === fk), f = row[0].fmt;
       return `<div class="sv-size"><div class="sv-label">${esc(f.short || f.label)}${row.length > 1 ? ` <small>${row.length} pages, swipe</small>` : ''}</div>
         <div class="sv-row ${row.length > 1 ? 'many' : ''}">${row.map(a => `<figure class="sv-img" data-id="${esc(a.id)}" style="--w:${a.fmt.w};--h:${a.fmt.h}">
-          <div class="sv-fit"><div class="sv-scale">${X().renderAsset(a)}</div></div>
+          <div class="sv-fit"><div class="sv-scale" data-preview>${X().renderAsset(a)}</div></div>
           <figcaption><span>${esc(a.item.label && row.length > 1 ? a.item.label : '')}</span><button class="sv-btn sm" data-saveimg="${esc(a.id)}">Save image</button></figcaption></figure>`).join('')}</div></div>`;
     }).join('')}</section>`;
   }).join('') : '<p class="sv-empty">Nothing to show yet. Open this file on a computer to start a design.</p>';

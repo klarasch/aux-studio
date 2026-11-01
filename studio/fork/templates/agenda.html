@@ -39,6 +39,7 @@
       <div class="aux-chips" data-part="when" data-drop="2" data-group>
         <span class="aux-chip" data-hl data-group>
           <span data-show="event.date" data-format="date"></span>
+          <span data-aux-nodate data-if-not="event.date"></span>
           <span data-f="event.time"></span>
         </span>
         <span class="aux-chip" data-show="event.venue event.city" data-join=", "></span>
@@ -62,6 +63,7 @@
         <div class="aux-chips" data-part="when" data-drop="2" data-group>
           <span class="aux-chip" data-hl data-group>
             <span data-show="event.date" data-format="date"></span>
+            <span data-aux-nodate data-if-not="event.date"></span>
             <span data-f="event.time"></span>
           </span>
           <span class="aux-chip" data-show="event.venue event.city" data-join=", "></span>

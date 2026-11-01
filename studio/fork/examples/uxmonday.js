@@ -16,12 +16,14 @@ window.STUDIO_EXAMPLE = {
           "name": "Jana Nováková",
           "role": "Lead Product Designer",
           "company": "Productboard",
+          "talk": "Komponenty, které přežijí redesign",
           "photo": ""
         },
         {
           "name": "Tomáš Dvořák",
           "role": "Design Ops",
           "company": "Kiwi.com",
+          "talk": "Design ops bez byrokracie",
           "photo": ""
         }
       ],
