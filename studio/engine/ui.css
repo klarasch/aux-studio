@@ -14,9 +14,9 @@
     --e-edge:rgba(255,255,255,.09); --e-hi:inset 0 1px 0 rgba(255,255,255,.05); --e-drop:0 1px 1px rgba(0,0,0,.3); --e-ring:rgba(255,255,255,.2);
   }
 }
-body.studio2{margin:0;height:100vh;overflow:hidden;background:var(--e-bg);color:var(--e-text);font:13px/1.45 "Geist",system-ui,sans-serif;
+body.studio2{margin:0;height:100vh;height:100dvh;overflow:hidden;background:var(--e-bg);color:var(--e-text);font:13px/1.45 "Geist",system-ui,sans-serif;
   display:block}
-body.studio2 #app{display:grid;grid-template-columns:248px 1fr 292px;grid-template-rows:48px 1fr;height:100vh}
+body.studio2 #app{display:grid;grid-template-columns:248px 1fr 292px;grid-template-rows:48px 1fr;height:100vh;height:100dvh}
 .topbar{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:0 12px;background:var(--e-panel);border-bottom:1px solid var(--e-line);z-index:5}
 .tb-brand{display:flex;align-items:center;gap:8px;min-width:224px}
 .tb-brand .mk{height:22px;width:auto;color:var(--e-text)}
@@ -157,7 +157,7 @@ body.studio2 #app{display:grid;grid-template-columns:248px 1fr 292px;grid-templa
 .progress div{height:100%;width:0;background:var(--e-accent);transition:width .2s}
 .studio2 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#0F401A;color:#fff;padding:8px 14px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:50}
 .studio2 .toast.on{opacity:1}
-@media (max-width:900px){body.studio2 #app{grid-template-columns:1fr;grid-template-rows:48px 45vh auto auto}#left,#right{border:0;border-top:1px solid var(--e-line)}.tb-brand{min-width:0}.tb-doc{display:none}}
+@media (max-width:900px){body.studio2 #app{grid-template-columns:216px 1fr 268px}.tb-brand{min-width:0}.tb-doc{display:none}}
 
 /* Event + Posts panel */
 .lp-sub{text-transform:none;letter-spacing:0;font-weight:500;color:var(--e-text)}
@@ -276,7 +276,6 @@ span.ip-name{flex:1;font-weight:600}
 .lp-shared{flex:none;display:flex;flex-direction:column;max-height:42%;margin-top:0;padding:10px 0 8px}
 .lp-items{overflow-y:auto;min-height:0}
 #left .btn.lp-newitem{flex:none;width:auto;align-self:stretch;justify-content:center;margin:6px 12px 2px}
-@media (max-width:900px){#left{display:block;overflow:visible}.lp-shared{max-height:none}}
 /* header: the brand's mark, and a project name that takes the room there is */
 img.mk{height:22px;width:auto;display:block}
 .tb-name{flex:1 1 220px;width:auto!important;min-width:80px;max-width:560px;text-overflow:ellipsis}
@@ -378,7 +377,7 @@ textarea.ip-name{resize:none;field-sizing:content;min-height:0;line-height:1.3;o
 /* picture tiles in a popover: choices a fork draws (a graphic) */
 .pk-grid{display:grid;grid-template-columns:repeat(4,64px);gap:10px 8px;padding:10px 12px 12px}
 .pk-grid .pk-g{grid-column:1/-1;padding:4px 0 0}
-.tile{display:grid;gap:4px;border:0;background:none;padding:0;cursor:pointer;font:inherit;font-size:11px;color:var(--e-muted);text-align:center;min-width:0}
+.tile{display:grid;gap:4px;border:0;background:none;padding:0;cursor:pointer;font:inherit;font-size:11px;color:var(--e-muted);text-align:center;min-width:0;overflow:visible;border-radius:0} /* overflow: the boards' .tile (runtime.css) clipped the ring */
 .tile-pv{position:relative;display:grid;place-items:center;aspect-ratio:4/5;border-radius:6px;overflow:hidden;background:var(--e-field);box-shadow:0 0 0 1px var(--e-ring)}
 .tile-pv>svg{width:100%;height:100%;display:block}
 .tile-pv>i{font-style:normal;font-weight:600;font-size:13px;color:var(--e-muted)}
@@ -435,3 +434,68 @@ textarea.ip-name{resize:none;field-sizing:content;min-height:0;line-height:1.3;o
 .studio2 .btn svg{flex:none}
 .studio2 .btn.ghost svg{margin-right:-2px}
 .item .mv button{display:grid;place-items:center;width:22px;height:20px;padding:0}
+
+/* ═════════════ narrow screens: one panel at a time ═════════════
+   768px and below (a phone opened with ?view=studio, a tablet upright): the top bar keeps what is needed, Designs, Canvas and
+   Edit switch with the tab bar at the bottom (body[data-pane], ui.js showPane), menus open as a sheet from the bottom, and every
+   control is at least 36px to touch. Inputs are 16px so a phone does not zoom in on them. */
+.mtabs{display:none}
+#stage{touch-action:none}
+@media (max-width:768px){
+  body.studio2 #app{grid-template-columns:minmax(0,1fr);grid-template-rows:52px minmax(0,1fr) calc(56px + env(safe-area-inset-bottom))}
+  body.studio2 #left,body.studio2 #stage,body.studio2 #right{grid-area:2/1;border:0}
+  body.studio2:not([data-pane="layers"]) #left,body.studio2:not([data-pane="canvas"]) #stage,body.studio2:not([data-pane="inspect"]) #right{display:none}
+  .mtabs{grid-area:3/1;display:grid;grid-template-columns:repeat(3,1fr);background:var(--e-panel);border-top:1px solid var(--e-line);padding:0 0 env(safe-area-inset-bottom);z-index:5}
+  .mtabs button{display:grid;justify-items:center;align-content:center;gap:2px;border:0;background:none;font:inherit;font-size:11px;font-weight:500;color:var(--e-muted);cursor:pointer;position:relative;min-height:56px;-webkit-tap-highlight-color:transparent}
+  .mtabs button[aria-selected="true"]{color:var(--e-text);font-weight:600}
+  .mtabs button[aria-selected="true"] svg{color:var(--e-sel)}
+  .mtabs button.has::after{content:"";position:absolute;top:9px;left:calc(50% + 12px);width:6px;height:6px;border-radius:50%;background:var(--e-sel)}
+
+  /* top bar: logo, name, undo and redo, Save, Project, Export. Zoom floats on the canvas */
+  .topbar{gap:6px;padding:0 8px 0 10px}
+  .tb-brand{min-width:0;flex:none} .tb-brand b,.tb-sp{display:none}
+  .tb-name{flex:1 1 0!important;min-width:0!important;padding:5px 4px!important}
+  .tb-group.hist .ib{width:36px;height:36px}
+  .topbar .btn{padding:0 11px}
+  .tb-group.zoom{position:fixed;top:62px;right:10px;z-index:4;background:color-mix(in srgb,var(--e-panel) 92%,transparent);backdrop-filter:blur(8px)}
+  body.studio2:not([data-pane="canvas"]) .tb-group.zoom{display:none}
+  .tb-group.zoom .ib,.zlabel{height:36px} .tb-group.zoom .ib{width:36px}
+
+  /* the floating toolbar sits at the bottom of the canvas, full width, and scrolls sideways if it must */
+  .studio2 #ftb{left:8px!important;right:8px;top:auto!important;bottom:10px;transform:none;overflow-x:auto;scrollbar-width:none;justify-content:flex-start}
+  .studio2 #ftb::-webkit-scrollbar{display:none}
+  .stage-hint .empty{margin:16px;padding:20px}
+
+  /* touch: 36px and more */
+  .ib,.ib.more{width:36px;height:36px} .ib.xs,.optrow .rs{width:32px;height:32px}
+  .studio2 .btn,.studio2 .pk-btn,.studio2 .chip{height:38px}
+  .studio2 .seg button{min-height:34px}
+  .studio2 .seg.mini button{min-height:34px}
+  .ftb-btn{min-height:36px;padding:6px 11px} .studio2 .ftb .pk-btn{height:36px}
+  .ly{min-height:40px} .post-h{min-height:36px}
+  .ly-x,.post-h .post-x{visibility:visible;min-width:32px;min-height:32px}
+  .lp-add{min-width:36px;min-height:36px}
+  .optrow{min-height:40px}
+  .look{width:34px;height:34px}
+  .studio2 .sw{width:42px;height:26px} .studio2 .sw::after{width:22px;height:22px} .studio2 .sw[aria-checked="true"]::after{left:18px}
+  .studio2 input[type=checkbox]{width:22px;height:22px} .studio2 .size input{width:1px;height:1px}
+  .lnk{min-height:36px;padding:2px 6px}
+  .studio2 label.chk{min-height:36px} .studio2 summary{min-height:36px;display:flex;align-items:center}
+  .studio2 input:not([type=checkbox]):not([type=range]),.studio2 textarea{font-size:16px;min-height:38px}
+  .studio2 input.ip-name,.studio2 textarea.ip-name{font-size:17px!important}
+  .item .mv button{width:36px;height:36px}
+  .pj-row{flex-wrap:wrap;gap:10px}
+  .dlg{max-height:calc(100dvh - 24px);overflow:auto;box-sizing:border-box}
+
+  /* menus and picture grids: a sheet from the bottom */
+  .pk-scrim{position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.32)}
+  .pk-pop.pk-sheet{left:0!important;right:0;bottom:0;top:auto!important;min-width:0!important;max-height:72dvh!important;border-radius:16px 16px 0 0;border-bottom:0;
+    padding:8px 8px calc(12px + env(safe-area-inset-bottom));box-shadow:0 -10px 40px rgba(0,0,0,.2)}
+  .pk-pop.pk-sheet::before{content:"";display:block;width:36px;height:4px;border-radius:2px;background:var(--e-line);margin:2px auto 8px}
+  .pk-sheet .pk-it{min-height:44px;padding:8px 12px;font-size:15px;white-space:normal}
+  .pk-sheet .pk-it>small{font-size:13px}
+  .pk-sheet.pk-grid{grid-template-columns:repeat(auto-fill,minmax(72px,1fr));gap:14px 10px;padding:8px 16px calc(16px + env(safe-area-inset-bottom))}
+  .pk-sheet.pk-grid::before{grid-column:1/-1}
+  .pk-sheet .tile{font-size:12px}
+}
+@media (max-width:480px){.tb-brand{display:none} .topbar .btn{padding:0 9px}}

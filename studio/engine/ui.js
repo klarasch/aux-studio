@@ -61,8 +61,15 @@ function mount() {
   <aside id="left" class="ui-panel" data-ui-clear></aside>
   <main id="stage"><div id="world" data-ui-clear></div><div id="ftb" class="ftb" hidden></div><div class="stage-hint" id="stageHint"></div></main>
   <aside id="right" class="ui-panel" data-ui-clear></aside>
+  <nav class="mtabs" id="mtabs" role="tablist" aria-label="Panels">
+    <button type="button" role="tab" data-pane="layers">${IC.list}<span>Designs</span></button>
+    <button type="button" role="tab" data-pane="canvas">${IC.canvas}<span>Canvas</span></button>
+    <button type="button" role="tab" data-pane="inspect">${IC.sliders}<span>Edit</span></button>
+  </nav>
   <div id="modal" class="modal" hidden data-ui-clear></div>`;
   bindTopbar(); bindStage(); bindKeys();
+  $('#mtabs').onclick = e => { const b = e.target.closest('[data-pane]'); if (b) showPane(b.dataset.pane); };
+  showPane('canvas');
   $('#filePick').addEventListener('change', async e => {
     const f = e.target.files[0]; e.target.value = ''; if (!f || !X.pickPath) return;
     const [pid, path] = X.pickPath.includes('|') ? X.pickPath.split('|') : [null, X.pickPath];
@@ -83,6 +90,17 @@ function offerStash() {
   m.querySelector('[data-restore]').onclick = () => { X.restoreStash(); closeModal(); sel = null; X.changed({ form: true }); requestAnimationFrame(fitAll); };
 }
 function reset() { sel = null; }
+/* narrow screens (768px and below): one panel at a time, switched by the tab bar at the bottom (ui.css). Wider, all three show
+   and the pane only remembers which tab would be open. */
+const narrow = () => matchMedia('(max-width: 768px)').matches;
+function showPane(p) {
+  const was = document.body.dataset.pane; document.body.dataset.pane = p;
+  $$('#mtabs [data-pane]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.pane === p)));
+  closePop();
+  if (p === 'canvas' && was && was !== 'canvas' && narrow()) requestAnimationFrame(positionToolbar);
+}
+// a pick in the list shows the result: a design or an image on the canvas, a text, photo or shared item in the inspector
+function paneFor(kind) { if (narrow()) showPane(kind); }
 
 /* ═════════════ layout of frames on the canvas ═════════════ */
 const GAP = 90, ROW = 720, LABEL = 60;
@@ -211,7 +229,7 @@ function openLibrary() {
 }
 function addPost(tid) {
   const p = X.newPost(tid); X.S.posts.push(p); X.changed({ form: true });
-  select({ type: 'post', key: p.id }); setTimeout(() => zoomToGroup(p.id), 300);
+  select({ type: 'post', key: p.id }); paneFor('canvas'); setTimeout(() => zoomToGroup(p.id), 300);
 }
 function applyView() {
   const w = $('#world'); if (!w) return;
@@ -241,13 +259,14 @@ function fitAll() {
   view.z = Math.max(FIT_MIN, Math.min(1.2, (r.width - pad * 2) / w));
   view.x = Math.max(pad, (r.width - w * view.z) / 2) - x1 * view.z; view.y = pad - y1 * view.z; applyView();
 }
-function zoomToFrame(id) { const L = layout.get(id); if (L) fitRect(L.x, L.y, L.w, L.h, 90); }
+function zoomToFrame(id) { const L = layout.get(id); if (L) fitRect(L.x, L.y, L.w, L.h, narrow() ? 28 : 90); }
 function zoomToGroup(pid) { const gl = groupsLayout.find(g => g.post.id === pid); if (gl) fitRect(gl.x, gl.y, gl.w, gl.h, 50); }
 
 /* ═════════════ selection ═════════════ */
 function select(s, opts = {}) {
   if (s?.id !== sel?.id) pins.clear();
   sel = s; closePop(); paintSelection(); renderInspector(); renderLayers();
+  $('#mtabs [data-pane="inspect"]')?.classList.toggle('has', !!s);
   if (opts.zoom && s?.id) zoomToFrame(s.id);
 }
 function paintSelection() {
@@ -281,12 +300,41 @@ function bindStage() {
   document.addEventListener('keydown', e => { if (e.code === 'Space' && !isTyping(e)) { spaceDown = true; stage.classList.add('grab'); } });
   document.addEventListener('keyup', e => { if (e.code === 'Space') { spaceDown = false; stage.classList.remove('grab'); } });
 
+  /* touch: one finger pans, also over a page (a tap still selects: a pan that moved swallows its click), two fingers pinch */
+  const touches = new Map(); let pinch = null, swallow = false;
   stage.addEventListener('pointerdown', e => {
+    swallow = false;
+    if (e.pointerType !== 'touch') return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (touches.size !== 2) return;
+    const [a, b] = [...touches.values()], r = stage.getBoundingClientRect();
+    pan = drag = sdrag = null;
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, z: view.z, wx: ((a.x + b.x) / 2 - r.left - view.x) / view.z, wy: ((a.y + b.y) / 2 - r.top - view.y) / view.z };
+  }, true);
+  stage.addEventListener('pointermove', e => {
+    if (!touches.has(e.pointerId)) return;
+    touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!pinch || touches.size !== 2) return;
+    e.stopImmediatePropagation();
+    const [a, b] = [...touches.values()], r = stage.getBoundingClientRect();
+    view.z = Math.min(2, Math.max(.04, pinch.z * Math.hypot(a.x - b.x, a.y - b.y) / pinch.d));
+    view.x = (a.x + b.x) / 2 - r.left - pinch.wx * view.z; view.y = (a.y + b.y) / 2 - r.top - pinch.wy * view.z; applyView();
+  }, true);
+  const lift = e => { touches.delete(e.pointerId); if (pinch && touches.size < 2) { pinch = null; swallow = true; stage.classList.remove('panning'); } };
+  stage.addEventListener('pointerup', lift, true); stage.addEventListener('pointercancel', lift, true);
+  stage.addEventListener('click', e => { if (swallow) { swallow = false; e.stopImmediatePropagation(); e.preventDefault(); } }, true);
+
+  stage.addEventListener('pointerdown', e => {
+    if (pinch) return;
     if (e.target.closest('.ftb, .lib-empty, .fr-add')) return;
     if (editing && e.target.closest('[contenteditable]')) return;
     const onFrame = e.target.closest('.fr');
     if (e.button === 1 || spaceDown || (!onFrame && !e.target.closest('.glabel'))) {
       pan = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false }; stage.setPointerCapture(e.pointerId); stage.classList.add('panning'); return;
+    }
+    const pk = e.target.closest('[data-p]');
+    if (e.pointerType === 'touch' && !e.target.closest('.sticker') && !(pk && sel?.type === 'photo' && sel.path === pk.dataset.p && sel.id === onFrame?.dataset.id)) {
+      pan = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false, touch: true }; return; // no capture: the tap's click must still reach the page
     }
     const st = e.target.closest('.sticker');
     if (st) {
@@ -303,7 +351,7 @@ function bindStage() {
     }
   });
   stage.addEventListener('pointermove', e => {
-    if (pan) { const dx = e.clientX - pan.x, dy = e.clientY - pan.y; if (Math.hypot(dx, dy) > 3) pan.moved = true; view.x = pan.vx + dx; view.y = pan.vy + dy; applyView(); return; }
+    if (pan) { const dx = e.clientX - pan.x, dy = e.clientY - pan.y; if (Math.hypot(dx, dy) > (pan.touch ? 8 : 3)) pan.moved = true; if (pan.touch && !pan.moved) return; view.x = pan.vx + dx; view.y = pan.vy + dy; applyView(); return; }
     if (sdrag) {
       const dx = (e.clientX - sdrag.x) / sdrag.fw * 100, dy = (e.clientY - sdrag.y) / sdrag.fh * 100, s0 = sdrag.s0, el = $(`#world .fr[data-id="${CSS.escape(sdrag.id)}"] .sticker[data-st="${sdrag.idx}"]`);
       if (sdrag.rotate) { // around the sticker's centre; snaps to straight within 3°, ⇧ gives steps of 15°
@@ -324,7 +372,7 @@ function bindStage() {
   stage.addEventListener('pointerup', e => {
     stage.classList.remove('panning');
     if (sdrag) { const d = sdrag; sdrag = null; if (d.now) { ov(d.id).__stickers[d.idx] = d.now; X.changed(); } return; }
-    if (pan) { const moved = pan.moved; pan = null; if (!moved && !e.target.closest('.fr, .glabel')) { commitEdit(); select(null); } return; }
+    if (pan) { const { moved, touch } = pan; pan = null; if (touch && moved) swallow = true; if (!moved && !e.target.closest('.fr, .glabel')) { commitEdit(); select(null); } return; }
     if (drag) {
       const { p, moved } = drag; drag = null;
       if (moved) { const id = p.closest('.asset').dataset.id; (X.S.overrides[id] ||= {})['pos:' + p.dataset.p] = p.style.backgroundPosition; X.changed(); return; }
@@ -681,12 +729,12 @@ function renderLayers() {
   L.onclick = e => {
     const tw = e.target.closest('[data-tw]'); if (tw) { const k = tw.dataset.tw; collapsed.has(k) ? collapsed.delete(k) : collapsed.add(k); localStorage.setItem('studio:collapsed', JSON.stringify([...collapsed])); renderLayers(); return; }
     if (e.target.closest('#addPost')) { openLibrary(); return; }
-    const ni = e.target.closest('[data-newitem]'); if (ni) { const k = ni.dataset.newitem, v = X.newItem(k); X.changed({ form: true }); select({ type: 'content', key: `kind:${k}:${v.id}` }); return; }
+    const ni = e.target.closest('[data-newitem]'); if (ni) { const k = ni.dataset.newitem, v = X.newItem(k); X.changed({ form: true }); select({ type: 'content', key: `kind:${k}:${v.id}` }); paneFor('inspect'); return; }
     const dp = e.target.closest('[data-delpost]'); if (dp) { deletePost(dp.dataset.delpost); return; }
-    const c = e.target.closest('[data-content]'); if (c) { select({ type: 'content', key: c.dataset.content }); return; }
-    const p = e.target.closest('[data-post]'); if (p) { select({ type: 'post', key: p.dataset.post }); zoomToGroup(p.dataset.post); return; }
-    const ly = e.target.closest('[data-layer]'); if (ly) { const [type, id, path] = ly.dataset.layer.split('|'); select({ type, id, path }); return; }
-    const f = e.target.closest('[data-frame]'); if (f) { const id = f.dataset.frame; select({ type: 'frame', id }); e.detail >= 2 ? zoomToFrame(id) : ensureVisible(id); }
+    const c = e.target.closest('[data-content]'); if (c) { select({ type: 'content', key: c.dataset.content }); paneFor('inspect'); return; }
+    const p = e.target.closest('[data-post]'); if (p) { select({ type: 'post', key: p.dataset.post }); paneFor('canvas'); zoomToGroup(p.dataset.post); return; }
+    const ly = e.target.closest('[data-layer]'); if (ly) { const [type, id, path] = ly.dataset.layer.split('|'); select({ type, id, path }); paneFor('inspect'); return; }
+    const f = e.target.closest('[data-frame]'); if (f) { const id = f.dataset.frame; select({ type: 'frame', id }); if (narrow()) { showPane('canvas'); zoomToFrame(id); } else e.detail >= 2 ? zoomToFrame(id) : ensureVisible(id); }
   };
 }
 // a design's publish date in the left panel: "Mon 2 Nov", under a heading per week ("2 to 8 Nov"), in the browser's language
@@ -991,6 +1039,9 @@ function listEditor(p, t) {
   }).join('');
 }
 const IC = { // standard icons (Lucide shapes)
+  list: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>',
+  canvas: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg>',
+  sliders: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></svg>',
   more: '<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><circle cx="4.5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15.5" cy="10" r="1.5"/></svg>',
   dup: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
   del: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
@@ -1020,7 +1071,20 @@ function choose(s, v) {
   s.dispatchEvent(new Event('change', { bubbles: true }));
 }
 let pop = null;
-function closePop() { if (!pop) return; pop.el.remove(); const a = pop.anchor; pop = null; a?.setAttribute('aria-expanded', 'false'); }
+function closePop() { if (!pop) return; pop.el.remove(); pop.scrim?.remove(); const a = pop.anchor; pop = null; a?.setAttribute('aria-expanded', 'false'); }
+// under the button (or over it when there is more room above); on a narrow screen a sheet from the bottom, the page dimmed behind it
+function placePop(el, anchor, alignRight) {
+  pop = { el, anchor, top: anchor.getBoundingClientRect().top, w: innerWidth }; anchor.setAttribute('aria-expanded', 'true');
+  if (narrow()) {
+    const sc = document.createElement('div'); sc.className = 'pk-scrim'; sc.dataset.uiClear = ''; sc.onclick = closePop;
+    document.body.insertBefore(sc, el); el.classList.add('pk-sheet'); pop.scrim = sc; return;
+  }
+  const r = anchor.getBoundingClientRect(), h = el.offsetHeight, below = innerHeight - r.bottom - 8, down = below >= Math.min(h, 260) || r.top < below;
+  if (!alignRight) el.style.minWidth = Math.max(r.width, 180) + 'px';
+  el.style.left = Math.max(8, Math.min(alignRight ? r.right - el.offsetWidth : r.left, innerWidth - el.offsetWidth - 8)) + 'px';
+  el.style.top = (down ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
+  el.style.maxHeight = Math.max(160, down ? below - 4 : r.top - 12) + 'px';
+}
 // a menu under `anchor`: items are { value, label, note, title, disabled, selected, group }
 function openPop(anchor, items, onPick) {
   if (pop?.anchor === anchor) return closePop();
@@ -1034,12 +1098,7 @@ function openPop(anchor, items, onPick) {
     return h + `<button type="button" role="option" class="pk-it${it.group ? ' in' : ''}" data-i="${i}" aria-selected="${!!it.selected}" ${it.disabled ? 'disabled' : ''} ${it.title ? `title="${esc(it.title)}"` : ''}>${it.thumb ? `<span class="pk-th">${it.thumb}</span>` : ''}<span>${esc(it.label)}</span>${it.note ? `<small>${esc(it.note)}</small>` : ''}${it.selected ? IC.check : ''}</button>`;
   }).join('');
   document.body.appendChild(el);
-  const r = anchor.getBoundingClientRect(), w = Math.max(r.width, 180), h = el.offsetHeight, below = innerHeight - r.bottom - 8;
-  el.style.minWidth = w + 'px';
-  el.style.left = Math.max(8, Math.min(r.left, innerWidth - el.offsetWidth - 8)) + 'px';
-  el.style.top = (below >= Math.min(h, 260) || r.top < below ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
-  el.style.maxHeight = Math.max(160, below >= Math.min(h, 260) || r.top < below ? below - 4 : r.top - 12) + 'px';
-  pop = { el, anchor, top: r.top }; anchor.setAttribute('aria-expanded', 'true');
+  placePop(el, anchor);
   el.onclick = e => { const b = e.target.closest('.pk-it'); if (!b || b.disabled) return; closePop(); onPick(items[+b.dataset.i].value); };
   el.onkeydown = e => {
     const bs = [...el.querySelectorAll('.pk-it:not(:disabled)')], i = bs.indexOf(document.activeElement);
@@ -1049,8 +1108,8 @@ function openPop(anchor, items, onPick) {
   (el.querySelector('.pk-it[aria-selected="true"]:not(:disabled)') || el.querySelector('.pk-it:not(:disabled)'))?.focus({ preventScroll: true });
   el.querySelector('.pk-it[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
 }
-document.addEventListener('mousedown', e => { if (pop && !pop.el.contains(e.target) && !pop.anchor.contains(e.target)) closePop(); }, true);
-addEventListener('resize', closePop);
+document.addEventListener('pointerdown', e => { if (pop && !pop.el.contains(e.target) && !pop.anchor.contains(e.target) && e.target !== pop.scrim) closePop(); }, true);
+addEventListener('resize', () => { if (pop && (!pop.scrim || innerWidth !== pop.w)) closePop(); }); // a phone's bar or keyboard changes the height only: a sheet stays
 // a scroll that moves the menu's button closes the menu (a redraw that leaves it in place does not)
 document.addEventListener('scroll', e => { if (!pop || pop.el.contains(e.target)) return; const t = pop.anchor.isConnected && pop.anchor.getBoundingClientRect().top; if (t === false || Math.abs(t - pop.top) > 2) closePop(); }, true);
 
@@ -1088,14 +1147,10 @@ function tilesUI(s, key) {
       return head + `<button type="button" class="tile" data-v="${esc(o.value)}" aria-pressed="${o.value === s.value}" ${o.disabled ? 'disabled' : ''} title="${esc(o.dataset.note ? `${o.text}: ${o.dataset.note}` : o.text)}"><span class="tile-pv">${th || `<i>${esc(o.text.slice(0, 1))}</i>`}${badge}</span><span class="tile-l">${esc(o.text)}</span></button>`;
     }).join('');
     document.body.appendChild(el);
-    const r = b.getBoundingClientRect(), h = el.offsetHeight, below = innerHeight - r.bottom - 8;
-    el.style.left = Math.max(8, Math.min(r.right - el.offsetWidth, innerWidth - el.offsetWidth - 8)) + 'px';
-    el.style.top = (below >= h || r.top < below ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
-    el.style.maxHeight = (below >= h || r.top < below ? below - 4 : r.top - 12) + 'px';
-    pop = { el, anchor: b, top: r.top }; b.setAttribute('aria-expanded', 'true');
+    placePop(el, b, true);
     el.onclick = e => { const t = e.target.closest('.tile'); if (!t || t.disabled) return; closePop(); choose(s, t.dataset.v); };
     el.onkeydown = e => {
-      const bs = [...el.querySelectorAll('.tile:not(:disabled)')], i = bs.indexOf(document.activeElement), step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 4, ArrowUp: -4 }[e.key];
+      const bs = [...el.querySelectorAll('.tile:not(:disabled)')], i = bs.indexOf(document.activeElement), cols = getComputedStyle(el).gridTemplateColumns.split(' ').length, step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
       if (step) { e.preventDefault(); bs[Math.max(0, Math.min(bs.length - 1, i + step))]?.focus(); }
       if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); closePop(); b.focus(); }
     };
@@ -1161,7 +1216,7 @@ function inspector(pid, id) {
   const own = (t.fields || []).length ? t.fields.map(f => field(f.key, f.label, f.type || 'text', '', p.fields[f.key], 'data-pf')).join('') : '';
   // boards are edited on the canvas (click a text, click or drop on an image); only JS templates keep the form
   const content = t.markup ? '' : postTexts(p, t) + (own ? `<div class="ip-sec"><div class="ip-t">${(t.uses || []).length ? 'More text' : 'Content'} <small>all sizes</small></div>${own}</div>` : '') + (needs.includes('slides') ? slidesEditor(p) : '');
-  const hint = t.markup && !elem && !tipSeen() ? `<div class="ip-sec"><div class="tip"><span>Double-click a text to edit it. Click an image slot to add a photo.</span><button class="ib xs" data-tipoff title="Got it" aria-label="Got it">${IC.x}</button></div></div>` : '';
+  const hint = t.markup && !elem && !tipSeen() ? `<div class="ip-sec"><div class="tip"><span>${narrow() ? 'Tap' : 'Click'} a text to edit it, ${narrow() ? 'tap' : 'click'} an image slot to add a photo.</span><button class="ib xs" data-tipoff title="Got it" aria-label="Got it">${IC.x}</button></div></div>` : '';
 
   // the slide: what belongs to this page at every size (layout, look, graphic); the design: what is shared; a size: what differs
   const paged = !!(a && isPage(a)), item = paged ? X.pageItem(id) : null, pt = paged ? a.tpl : t, cont = !!t.container, inSlide = op => cont ? op.scope !== 'design' : op.scope === 'slide', sparts = paged ? (pt.optional || []).filter(inSlide) : []; // in a design of pages every option of a page's template is the page's, unless the template says `design`
@@ -1213,7 +1268,7 @@ function inspector(pid, id) {
     size = `<div class="ip-sec"><div class="ip-t">${designHere ? 'This image' : `Only on ${esc(short)}`}${!designHere && rows.length ? ` <small>${rows.length} change${rows.length > 1 ? 's' : ''}</small>` : ''}</div>
       ${warn ? `<p class="warnline">${a.tpl.markup ? 'Some content doesn’t fit this size. Shorten the text or hide a part.' : 'Text touches a shape with this background. Pick another one or shorten the text.'}</p>` : ''}
       ${rows.join('')}${notes}
-      ${designHere ? (stick ? '' : `<div class="scope"><span>Stickers: paste a PNG (<kbd>⌘V</kbd>)</span><button class="lnk" data-fsticker>Add…</button></div>`)
+      ${designHere ? (stick ? '' : `<div class="scope"><span>${narrow() ? 'Stickers (PNG)' : 'Stickers: paste a PNG (<kbd>⌘V</kbd>)'}</span><button class="lnk" data-fsticker>Add…</button></div>`)
         : `<button class="btn ghost" data-fadd aria-haspopup="listbox">${IC.plus}Change for ${esc(short)} only</button>`}</div>`;
   }
   for (const k in X.kinds) X.setFocus(k, X.sharedItem(p, k).id); // a design made next reads the same items as the one on show
@@ -1405,6 +1460,7 @@ function openData() {
       <div class="pj-row"><div><b>Save as one file</b><p class="ip-note">An .html file with the whole project in it. Open it in any browser to see and edit it, send it to share. This is the real save: work is otherwise kept in this browser only.</p></div><button class="btn primary" id="saveSheet">Save (⌘S)</button></div>
       <div class="pj-row"><div><b>Open a file</b><p class="ip-note">A saved .html project or its .json. Replaces what is open here (⌘Z brings it back).</p></div><button class="btn" id="openFile">Open…</button><input type="file" id="openPick" accept=".html,.htm,.json,text/html,application/json" hidden></div>
       <div class="pj-row"><div><b>Share a link</b><p class="ip-note">The project in a link. Uploaded photos are left out.</p></div><button class="btn" id="copyLink">Copy link</button></div>
+      ${Studio.sheet && narrow() ? '<div class="pj-row"><div><b>Phone view</b><p class="ip-note">Every image fitted to the screen: tap a text to fix it, save an image to the phone.</p></div><button class="btn" id="toSheet">Open</button></div>' : ''}
       <div class="pj-row"><div><b>New empty project</b><p class="ip-note">Starts over in this browser. ⌘Z brings this one back.</p></div><button class="btn danger" id="resetAll">New project</button></div>
       <details class="pj-data"><summary>Project data (JSON)</summary>
         <p class="ip-note">The whole project as JSON. Claude can write this (or a <code>#d=</code> link, or a whole sheet) and the editor renders every image from it.</p>
@@ -1418,6 +1474,7 @@ function openData() {
   $('#copyJson', m).onclick = () => { navigator.clipboard.writeText($('#json').value); X.toast('JSON copied'); };
   $('#copyLink', m).onclick = () => { navigator.clipboard.writeText(location.href.split('#')[0] + '#d=' + X.b64enc(JSON.stringify(X.exportData({ dropUploads: true })))); X.toast('Link copied (uploaded photos stay local)'); };
   $('#saveSheet', m).onclick = () => { X.saveSheet(); closeModal(); };
+  const ts = $('#toSheet', m); if (ts) ts.onclick = () => { const u = new URL(location.href); u.searchParams.set('view', 'sheet'); location.href = u.href; };
   $('#resetAll', m).onclick = () => { X.S = X.normalize({}); sel = null; X.changed({ form: true }); closeModal(); X.toast('New project. ⌘Z brings the old one back'); };
 }
 
