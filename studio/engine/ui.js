@@ -1459,11 +1459,10 @@ function openData() {
     <div class="pj">
       <div class="pj-row"><div><b>Save as one file</b><p class="ip-note">An .html file with the whole project in it. Open it in any browser to see and edit it, send it to share. This is the real save: work is otherwise kept in this browser only.</p></div><button class="btn primary" id="saveSheet">Save (⌘S)</button></div>
       <div class="pj-row"><div><b>Open a file</b><p class="ip-note">A saved .html project or its .json. Replaces what is open here (⌘Z brings it back).</p></div><button class="btn" id="openFile">Open…</button><input type="file" id="openPick" accept=".html,.htm,.json,text/html,application/json" hidden></div>
-      <div class="pj-row"><div><b>Share a link</b><p class="ip-note">The project in a link. Uploaded photos are left out.</p></div><button class="btn" id="copyLink">Copy link</button></div>
       ${Studio.sheet && narrow() ? '<div class="pj-row"><div><b>Phone view</b><p class="ip-note">Every image fitted to the screen: tap a text to fix it, save an image to the phone.</p></div><button class="btn" id="toSheet">Open</button></div>' : ''}
       <div class="pj-row"><div><b>New empty project</b><p class="ip-note">Starts over in this browser. ⌘Z brings this one back.</p></div><button class="btn danger" id="resetAll">New project</button></div>
       <details class="pj-data"><summary>Project data (JSON)</summary>
-        <p class="ip-note">The whole project as JSON. Claude can write this (or a <code>#d=</code> link, or a whole sheet) and the editor renders every image from it.</p>
+        <p class="ip-note">The whole project as JSON. Claude can write this (or a whole sheet) and the editor renders every image from it.</p>
         <textarea id="json" spellcheck="false"></textarea>
         <div class="btnrow"><button class="btn" id="applyJson">Apply</button><button class="btn" id="copyJson">Copy JSON</button></div></details>
     </div>`, 'wide');
@@ -1472,7 +1471,6 @@ function openData() {
   X.syncJson();
   $('#applyJson', m).onclick = () => { try { X.S = X.normalize(JSON.parse($('#json').value)); sel = null; X.changed({ form: true }); closeModal(); X.toast('Applied'); } catch (e) { X.toast('Invalid JSON: ' + e.message); } };
   $('#copyJson', m).onclick = () => { navigator.clipboard.writeText($('#json').value); X.toast('JSON copied'); };
-  $('#copyLink', m).onclick = () => { navigator.clipboard.writeText(location.href.split('#')[0] + '#d=' + X.b64enc(JSON.stringify(X.exportData({ dropUploads: true })))); X.toast('Link copied (uploaded photos stay local)'); };
   $('#saveSheet', m).onclick = () => { X.saveSheet(); closeModal(); };
   const ts = $('#toSheet', m); if (ts) ts.onclick = () => { const u = new URL(location.href); u.searchParams.set('view', 'sheet'); location.href = u.href; };
   $('#resetAll', m).onclick = () => { X.S = X.normalize({}); sel = null; X.changed({ form: true }); closeModal(); X.toast('New project. ⌘Z brings the old one back'); };

@@ -648,7 +648,7 @@
     const left = br.left + parseFloat(cs.paddingLeft) * s - 1, right = br.right - parseFloat(cs.paddingRight) * s + 1;
     let over = false;
     for (const c of b.children) {
-      if (c.matches(".logo[data-corner], footer.band, [data-gen], [data-ui]")) continue;
+      if (c.matches(".logo[data-corner], footer.band, [data-bleed], [data-gen], [data-ui]")) continue;  // [data-bleed] runs past the safe area on purpose
       const r = c.getBoundingClientRect();
       if (!r.width && !r.height) continue;
       if (r.top < top || r.bottom > bottom || r.left < left || r.right > right) { over = true; c.setAttribute("data-overflow", ""); }

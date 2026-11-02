@@ -41,7 +41,7 @@
   const engine = ['../runtime.js', 'engine/studio.js', 'engine/ui.js', 'engine/boards.js', 'engine/sheet.js'].reduce((p, f) => p.then(() => addJS(f)), Promise.resolve());
   // a fork (studio/fork.js, optional) sets window.STUDIO_FORK; see TEMPLATES.md, "Fork". Missing file = the stock Studio.
   Promise.all([base, engine]).then(() => addJS('fork.js').catch(() => {})).then(async () => {
-    const F = window.STUDIO_FORK, stockIds = ['single-post', 'carousel', 'quote', 'stat', 'announcement'];
+    const F = window.STUDIO_FORK, stockIds = ['single-post', 'photo', 'carousel', 'quote', 'stat', 'announcement'];
     const brandAt = document.querySelector('meta[name="brand-css"]');
     if (!F) {
       // the stock library. ?fork=event loads the fork-side example (an event template with shared

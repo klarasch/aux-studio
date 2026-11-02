@@ -179,6 +179,7 @@ ol.list > li::before {
 .row[data-align="baseline"] { align-items: baseline; }
 .row[data-align="end"] { align-items: flex-end; }
 .row[data-justify="between"] { justify-content: space-between; flex-wrap: nowrap; }
+.row > .logo:last-child { margin-left: auto; }   /* a logo closing a row stays at its end when what is before it is hidden */
 .row[data-divide] > .row { flex-wrap: nowrap; }
 .row > .stack, .row > .body, .row > .lead, .row > .caption { min-width: 0; flex: 1 1 auto; }
 .card[data-fill] { min-height: calc(var(--body) * 10); }
@@ -251,6 +252,18 @@ ol.list > li::before {
 figure.media { position: relative; overflow: hidden; border-radius: var(--r); background: var(--g-fill); min-height: 0; }
 figure.media > img { display: block; width: 100%; height: 100%; object-fit: cover; }
 figure.media[data-crop="contain"] > img { object-fit: contain; }
+/* data-bleed: a direct board child that runs to the board's edges, behind the text (a full-bleed photo, a decoration).
+   The board is its own stacking context so z-index -1 sits above the ground and below everything in flow. */
+.board { isolation: isolate; }
+.board > [data-bleed] { position: absolute; inset: 0; margin: 0; z-index: -1; pointer-events: auto; }
+.board > figure.media[data-bleed] { border-radius: 0; }
+.board > [data-bleed="top"] { bottom: auto; height: var(--bleed-h, 55%); }
+.board > [data-bleed="bottom"] { top: auto; height: var(--bleed-h, 55%); }
+/* data-fade: the photo melts into the board's own ground towards the bottom, so text on it stays readable */
+.board > figure.media[data-fade]::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to top, var(--g-bg) 0%, color-mix(in srgb, var(--g-bg) 82%, transparent) 26%, color-mix(in srgb, var(--g-bg) 0%, transparent) 64%);
+}
 /* on screen only: a media figure takes a click, Enter or a dropped file. Scoped to .sheet, so an
    exported board (which sits outside it) never shows the affordance. */
 .sheet figure.media[data-mib-media] { cursor: pointer; }
