@@ -27,7 +27,9 @@
     ['Subtle', { corner: 'Corner', lines: 'Lines', plain: 'Plain' }],
     ['With a photo', { 'photo-cut': 'Photo cut', 'photo-chevron': 'Photo chevron', 'photo-rotated': 'Photo band', photo: 'Full photo' }],
   ];
-  Studio.boards.choices.graphic = [{ id: 'auto', label: 'Auto' }, ...GRAPHICS.flatMap(([group, m]) => Object.entries(m).map(([id, label]) => ({ id, label, group })))];
+  // each graphic has a small picture for the inspector's tiles (drawn on first use, from the same geometry as the boards);
+  // "auto" has none of its own: the inspector shows the one Auto picked, read from data-picked-graphic on the board
+  Studio.boards.choices.graphic = [{ id: 'auto', label: 'Auto', auto: true }, ...GRAPHICS.flatMap(([group, m]) => Object.entries(m).map(([id, label]) => ({ id, label, group, thumb: () => thumb(id) })))];
   Studio.boards.choices.texture = [{ id: 'on', label: 'Grid texture' }, { id: 'off', label: 'None' }];
 
   /* ── geometry ──
@@ -92,6 +94,22 @@
     }
     if (b.dot) { const c = [X(b.dot.x), Y(b.dot.y), b.dot.r * u]; shapes.push({ circle: c }); items.push({ t: 'dot', c }); }
     return { items, shapes, photo, sw };
+  }
+
+  // a 4:5 picture of a graphic on the dark ground, with two lines of text where the column sits
+  function thumb(id) {
+    const w = 80, h = 100, g = geometry(BACKDROPS[id] || BACKDROPS.plain, w, h, 'portrait', 'center'), sw = 1.6;
+    const photo = '<linearGradient id="tph" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8d9a8f"/><stop offset="1" stop-color="#2f3b31"/></linearGradient>';
+    let out = `<rect width="${w}" height="${h}" fill="#010B04"/>`;
+    if (g.photo?.full) out += `<rect width="${w}" height="${h}" fill="url(#tph)"/><rect y="${h * .55}" width="${w}" height="${h * .45}" fill="#010B04" opacity=".55"/>`;
+    else if (g.photo?.poly) out += `<polygon points="${pts(g.photo.poly)}" fill="url(#tph)"/>`;
+    for (const it of g.items) {
+      if (it.t === 'band') out += `<polygon points="${it.pts}" fill="#60C70F"/>`;
+      else if (it.t === 'dot') out += `<circle cx="${it.c[0].toFixed(1)}" cy="${it.c[1].toFixed(1)}" r="${it.c[2].toFixed(1)}" fill="#E5F6E9"/>`;
+      else out += `<path d="${pathOf(it.pl, it.closed)}" fill="none" stroke="${it.fg ? '#E5F6E9' : '#60C70F'}" stroke-width="${sw}"/>`;
+    }
+    out += '<rect x="8" y="46" width="30" height="5" rx="2" fill="#E5F6E9"/><rect x="8" y="55" width="20" height="3.5" rx="1.75" fill="#E5F6E9" opacity=".6"/>';
+    return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" aria-hidden="true"><defs>${photo}</defs>${out}</svg>`;
   }
 
   /* ── board geometry helpers (px of the unscaled board) ── */
@@ -163,7 +181,7 @@
     const lk = node.querySelector('.aux-lockup');
     if (lk) { lk.classList.remove('parked'); lk.removeAttribute('data-ui'); ['position', 'left', 'top'].forEach(p => lk.style.removeProperty(p)); }
     node.querySelectorAll('.aux-pill').forEach(e => e.setAttribute('data-ui', '')); // an overlay on purpose: not part of the overflow check
-    node.removeAttribute('data-shapes'); node.removeAttribute('data-aux-tight'); node.removeAttribute('data-aux-stack');
+    node.removeAttribute('data-shapes'); node.removeAttribute('data-aux-tight'); node.removeAttribute('data-aux-stack'); node.removeAttribute('data-picked-graphic');
   }
 
   // the graphic leaves the text about a third of the board or less, or the groups do not fit the room at their natural gaps:
@@ -233,7 +251,7 @@
       else if (it.t === 'band') svg.append(el('polygon', { points: it.pts, fill: col.band }));
       else if (it.t === 'dot') svg.append(el('circle', { cx: it.c[0], cy: it.c[1], r: it.c[2], fill: col.dot }));
     }
-    node.prepend(svg);
+    node.prepend(svg); node.setAttribute('data-picked-graphic', id); // the inspector says what Auto picked
     node.setAttribute('data-shapes', JSON.stringify(g.shapes.map(s => s.poly ? { poly: s.poly.map(p => p.map(Math.round)) } : { circle: s.circle.map(Math.round) })));
 
     if (node.dataset.optTexture !== 'off') {

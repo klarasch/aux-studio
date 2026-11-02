@@ -53,7 +53,7 @@ function mount() {
     <input class="tb-name" id="docName" placeholder="Untitled project" title="Project name" spellcheck="false">
     <div class="tb-sp"></div>
     <div class="tb-group hist"><button class="ib" id="undo" title="Undo (⌘Z)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M7.5 5 3.5 9l4 4"/><path d="M3.5 9h8a5 5 0 0 1 0 10H9"/></svg></button><button class="ib" id="redo" title="Redo (⇧⌘Z)"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12.5 5 4 4-4 4"/><path d="M16.5 9h-8a5 5 0 0 0 0 10H11"/></svg></button></div>
-    <div class="tb-group zoom"><button class="ib" id="zOut" title="Zoom out (⌘−)">−</button><button class="zlabel" id="zLabel" title="Zoom to fit (⇧1)">25%</button><button class="ib" id="zIn" title="Zoom in (⌘+)">+</button></div>
+    <div class="tb-group zoom"><button class="ib" id="zOut" title="Zoom out (⌘−)" aria-label="Zoom out">${IC.minus}</button><button class="zlabel" id="zLabel" title="Zoom to fit (⇧1)">25%</button><button class="ib" id="zIn" title="Zoom in (⌘+)" aria-label="Zoom in">${IC.plus}</button></div>
     <button class="btn save" id="saveBtn" title="Save the project as one file that opens anywhere (⌘S)">Save</button>
     <button class="ib more" id="dataBtn" title="Project: open a file, share a link, data" aria-label="Project">${IC.more}</button>
     <button class="btn primary" id="exportBtn">Export</button>
@@ -75,7 +75,7 @@ function mount() {
 // the file was updated since this browser last edited it, and those edits were never saved to a file: say so and offer them back
 function offerStash() {
   const st = X.stashed, n = (st.posts || []).length;
-  const m = openModal(`<div class="sh-h"><b>This file was updated</b><button class="ib" data-close>×</button></div>
+  const m = openModal(`<div class="sh-h"><b>This file was updated</b><button class="ib" data-close aria-label="Close">${IC.x}</button></div>
     <p class="ip-note">It changed since you last edited it in this browser, and those edits (${n} design${n === 1 ? '' : 's'}) were not saved to a file.
     The updated file is open now. You can bring your edits back instead; the update is then replaced by them.</p>
     <div class="btnrow"><button class="btn primary" data-keepfile>Keep the updated file</button><button class="btn" data-restore>Bring back my edits</button></div>`);
@@ -205,7 +205,7 @@ function bindLibrary(root, after) {
   paint(); document.fonts.ready.then(paint);
 }
 function openLibrary() {
-  const m = openModal(`<div class="sh-h"><b>New design</b><button class="ib" data-close>×</button></div>
+  const m = openModal(`<div class="sh-h"><b>New design</b><button class="ib" data-close aria-label="Close">${IC.x}</button></div>
     <p class="ip-note">Pick a template. You can change sizes, content and the template itself afterwards.</p>${libraryHTML()}`, 'wide lib-dlg');
   bindLibrary(m, closeModal);
 }
@@ -246,7 +246,8 @@ function zoomToGroup(pid) { const gl = groupsLayout.find(g => g.post.id === pid)
 
 /* ═════════════ selection ═════════════ */
 function select(s, opts = {}) {
-  sel = s; paintSelection(); renderInspector(); renderLayers();
+  if (s?.id !== sel?.id) pins.clear();
+  sel = s; closePop(); paintSelection(); renderInspector(); renderLayers();
   if (opts.zoom && s?.id) zoomToFrame(s.id);
 }
 function paintSelection() {
@@ -516,7 +517,10 @@ document.addEventListener('paste', e => {
 function pickSticker(id) { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.onchange = () => i.files[0] && addSticker(id, i.files[0]); i.click(); }
 
 /* ═════════════ keyboard ═════════════ */
-const isTyping = e => e.target.closest?.('input, textarea, select, [contenteditable]');
+const isTyping = e => e.target.closest?.('input, textarea, select, [contenteditable], .pk, .pk-pop');
+// panels redraw after a change unless a text field in them has focus (a focused button or picker does not hold them back)
+// panels also wait while one of their menus is open (a redraw would pull the menu's button out from under it)
+const typingInPanel = () => !!(pop?.anchor.isConnected && pop.anchor.closest('#right')) || !!document.activeElement?.closest('#right') && document.activeElement.matches('input, textarea, [contenteditable]');
 function bindKeys() {
   document.addEventListener('keydown', e => {
     const mod = e.metaKey || e.ctrlKey;
@@ -565,7 +569,7 @@ function renderToolbar() {
     html = `${a.tpl.backdrop && !a.tpl.markup ? `<div class="ftb-seg" title="Background"><select data-t="bg">${bgOptions(a, o, cur)}</select></div>` : ''}
       ${themes.length > 1 ? `<div class="ftb-seg sw" title="Theme">${themes.map(([k, th]) => `<button data-t="theme" data-v="${k}" class="swatch ${k === curTheme ? 'on' : ''}" style="--sw:${th.bg};--sw2:${th.accent}" title="${esc(th.label || k)}"></button>`).join('')}</div>` : ''}
       ${window.StudioAnimate ? `<button class="ftb-btn ${o.__motion ? 'on' : ''}" data-t="motion" title="Animate this image (exports MP4)">◷ Motion</button>` : ''}
-      ${isPage(a) ? `<button class="ftb-btn" data-t="pgL" title="Move earlier">←</button><button class="ftb-btn" data-t="pgR" title="Move later">→</button><button class="ftb-btn ftb-ic" data-t="pgDup" title="Duplicate this page" aria-label="Duplicate this page">${IC.dup}</button><button class="ftb-btn ftb-ic" data-t="pgDel" title="Remove this page (⌫)" aria-label="Remove this page">${IC.del}</button><button class="ftb-btn" data-t="export" title="Export this image">Export</button>`
+      ${isPage(a) ? `<button class="ftb-btn ftb-ic" data-t="pgL" title="Move earlier" aria-label="Move earlier">${IC.left}</button><button class="ftb-btn ftb-ic" data-t="pgR" title="Move later" aria-label="Move later">${IC.right}</button><button class="ftb-btn ftb-ic" data-t="pgDup" title="Duplicate this page" aria-label="Duplicate this page">${IC.dup}</button><button class="ftb-btn ftb-ic" data-t="pgDel" title="Remove this page (⌫)" aria-label="Remove this page">${IC.del}</button><button class="ftb-btn" data-t="export" title="Export this image">Export</button>`
         : `<button class="ftb-btn" data-t="export" title="Export this image">Export</button>${a.tpl.formats ? '' : `<button class="ftb-btn ftb-ic" data-t="rmsize" title="Remove this size (⌫)" aria-label="Remove this size">${IC.del}</button>`}`}`;
   } else if (sel.type === 'text') {
     const isOv = o[sel.path] != null;
@@ -578,7 +582,7 @@ function renderToolbar() {
     const hasPos = o['pos:' + sel.path] != null;
     html = `<button class="ftb-btn" data-t="replace">Replace…</button>${hasPos ? '<button class="ftb-btn" data-t="resetPos">Reset crop</button>' : ''}<span class="ftb-hint">drag to reframe</span>`;
   }
-  t.innerHTML = html; t.hidden = !html; positionToolbar();
+  t.innerHTML = html; enhance(t); t.hidden = !html; positionToolbar();
   t.onclick = e => {
     const b = e.target.closest('[data-t]'); if (!b) return; const k = b.dataset.t, id = sel.id;
     if (k === 'theme') setTheme(id, b.dataset.v);
@@ -625,11 +629,11 @@ function bgOptions(a, o, cur) {
   let fits = fitCache.get(key) || null;
   if (!fits && fitPending !== a.id) {
     fitPending = a.id;
-    setTimeout(() => { try { bgFits(a); } catch (e) { console.warn(e); } fitPending = null; if (sel?.id === a.id) { renderToolbar(); if (!document.activeElement?.closest('#right')) renderInspector(); } }, 60);
+    setTimeout(() => { try { bgFits(a); } catch (e) { console.warn(e); } fitPending = null; if (sel?.id === a.id) { renderToolbar(); if (!typingInPanel()) renderInspector(); } }, 60);
   }
-  const tag = k => fits && fits[k] === false ? ' (too tight)' : '';
-  return `<option value="">Auto${!o.__bg && cur ? `: ${esc(B().backdrops[cur]?.label || cur)}` : ''}</option>` +
-    Object.entries(B().backdrops).map(([k, b]) => `<option value="${k}" ${o.__bg === k ? 'selected' : ''}>${esc(b.label)}${tag(k)}</option>`).join('');
+  const tag = k => fits && fits[k] === false ? ' data-note="too tight"' : '';
+  return `<option value="" ${!o.__bg && cur ? `data-note="${esc(B().backdrops[cur]?.label || cur)}"` : ''}>Auto</option>` +
+    Object.entries(B().backdrops).map(([k, b]) => `<option value="${k}" ${o.__bg === k ? 'selected' : ''}${tag(k)}>${esc(b.label)}</option>`).join('');
 }
 function setBg(id, v) { const o = (X.S.overrides[id] ||= {}); if (v) o.__bg = v; else delete o.__bg; X.changed(); }
 function setTheme(id, v) { const a = assetById(id), o = (X.S.overrides[id] ||= {}); if (v === (a.item.theme || X.S.theme)) delete o.__theme; else o.__theme = v; X.changed(); }
@@ -664,7 +668,7 @@ function renderLayers() {
         const p = g.post, open = !collapsed.has(p.id), on = sel?.type === 'post' && sel.key === p.id;
         const wk = dated ? weekOf(p.date) : '', head = dated && (gi === 0 || weekOf(groups[gi - 1].post.date) !== wk) ? `<div class="lp-week">${esc(wk || 'No date')}</div>` : '';
         return `${head}<div class="post ${on ? 'on' : ''}" data-post="${p.id}">
-          <div class="post-h"><b class="tw" data-tw="${p.id}">${open ? '▾' : '▸'}</b><span title="${esc(g.label)}">${esc(g.label)}</span><em>${g.assets.length}</em><button class="ly-x post-x" data-delpost="${p.id}" title="Delete design (⌫)">×</button></div>
+          <div class="post-h"><b class="tw" data-tw="${p.id}">${open ? '▾' : '▸'}</b><span title="${esc(g.label)}">${esc(g.label)}</span><em>${g.assets.length}</em><button class="ly-x post-x" data-delpost="${p.id}" title="Delete design (⌫)" aria-label="Delete design">${IC.x}</button></div>
           <div class="post-sz">${p.date ? `<time>${esc(dayOf(p.date))}</time>` : ''}${p.formats.map(fmtChip).join('')}${X.kindsOf(p).filter(k => X.kinds[k] && X.S.shared[k].length > 1).map(k => `<span class="post-it" title="${esc(X.kinds[k].label)}">${esc(X.itemLabel(k, X.sharedItem(p, k)))}</span>`).join('')}</div></div>
         ${open ? sizeRows(g).flat().map(a => { const o = ov(a.id), here = sel?.id === a.id; return `<div class="ly ly-frame ${here && sel.type === 'frame' ? 'on' : ''} ${here ? 'open' : ''}" data-frame="${a.id}"><i class="fk fk-${a.fmt.kind}"></i><span>${esc(a.fmt.short || a.fmt.label)}${a.item.label ? ` <small>${esc(a.item.label)}</small>` : ''}</span>${o.__motion ? '<em title="Motion">◷</em>' : ''}</div>${here ? layerRows(a) : ''}`; }).join('') : ''}`;
       }).join('') || '<p class="ip-note lp-none">No designs yet.</p>'}
@@ -723,7 +727,7 @@ function renderInspector() {
   else if (sel.id && layout.has(sel.id)) html = inspector(sel.id.split('.')[0], sel.id);
   else { sel = null; html = docInspector(); }
   R.innerHTML = html;
-  bindInspector(R);
+  bindInspector(R); enhance(R);
 }
 function docInspector() {
   const s = S(), themes = Object.entries(B().themes), opts = B().options || [];
@@ -748,7 +752,7 @@ function kindInspector(key, id) {
     return `<div class="ip-sec"><div class="ip-t">${esc(l.label || l.key)} <small>${items.length}</small></div>${items.map((x, i) => `
       <div class="item ${img ? '' : 'noimg'}">${img ? `<div class="ph" data-pick="|${key}.${l.key}.${i}.${img.key}" style="${x[img.key] ? `background-image:url('${x[img.key]}')` : ''}">${x[img.key] ? '' : '+'}</div>` : ''}
         <div class="f">${(l.item || []).filter(f => f.type !== 'image').map(f => `<input placeholder="${esc(f.label || f.key)}" value="${esc(x[f.key] ?? '')}" data-sh="${key}.${l.key}.${i}.${f.key}">`).join('')}</div>
-        <div class="mv"><button data-shmv="${key}.${l.key}.${i}.-1" title="Move up">↑</button><button data-shmv="${key}.${l.key}.${i}.1" title="Move down">↓</button><button data-shrm="${key}.${l.key}.${i}" title="Remove">×</button></div></div>`).join('')}
+        <div class="mv"><button data-shmv="${key}.${l.key}.${i}.-1" title="Move up" aria-label="Move up">${IC.up}</button><button data-shmv="${key}.${l.key}.${i}.1" title="Move down" aria-label="Move down">${IC.down}</button><button data-shrm="${key}.${l.key}.${i}" title="Remove" aria-label="Remove">${IC.x}</button></div></div>`).join('')}
       <button class="btn ghost" data-shadd="${key}.${l.key}">+ Add ${esc(one.toLowerCase())}</button></div>`; };
   return `<div class="ip-h ip-head"><span class="ip-name">${esc(k.label)}${all.length > 1 ? ` ${all.indexOf(v) + 1} of ${all.length}` : ''}</span>
       <button class="ib" data-itdup="${key}:${v.id}" title="Duplicate this ${esc(low)}${users.length ? ' and its designs' : ''}">${IC.dup}</button>${all.length > 1 ? `<button class="ib danger" data-itdel="${key}:${v.id}" title="Delete this ${esc(low)}${users.length ? ' and its designs' : ''}">${IC.del}</button>` : ''}</div>
@@ -771,13 +775,13 @@ function contentInspector(key) {
   if (key === 'speakers') return `<div class="ip-h">Speakers</div>${usedLine('speakers')}<div class="ip-sec">${s.speakers.map((x, i) => `
       <div class="item"><div class="ph" data-pick="speakers.${i}.photo" style="${x.photo ? `background-image:url('${x.photo}')` : ''}">${x.photo ? '' : '+'}</div>
       <div class="f"><input placeholder="Name" value="${esc(x.name)}" data-sp="${i}.name"><input placeholder="Role" value="${esc(x.role)}" data-sp="${i}.role"><input placeholder="Company" value="${esc(x.company)}" data-sp="${i}.company"></div>
-      <div class="mv"><button data-mv="speakers.${i}.-1" title="Move up">↑</button><button data-mv="speakers.${i}.1" title="Move down">↓</button><button data-rm="speakers.${i}" title="Remove">×</button></div></div>`).join('')}
+      <div class="mv"><button data-mv="speakers.${i}.-1" title="Move up" aria-label="Move up">${IC.up}</button><button data-mv="speakers.${i}.1" title="Move down" aria-label="Move down">${IC.down}</button><button data-rm="speakers.${i}" title="Remove" aria-label="Remove">${IC.x}</button></div></div>`).join('')}
       <button class="btn ghost" data-add="speakers">+ Add speaker</button></div>`;
   if (key === 'agenda') return `<div class="ip-h">Agenda</div>${usedLine('agenda')}<div class="ip-sec">${s.agenda.map((x, i) => `
       <div class="item noimg"><div class="f two"><input placeholder="18:30" value="${esc(x.time)}" data-ag="${i}.time"><input placeholder="What happens" value="${esc(x.label)}" data-ag="${i}.label"></div>
-      <div class="mv"><button data-mv="agenda.${i}.-1">↑</button><button data-mv="agenda.${i}.1">↓</button><button data-rm="agenda.${i}">×</button></div></div>`).join('')}
+      <div class="mv"><button data-mv="agenda.${i}.-1" aria-label="Move up">${IC.up}</button><button data-mv="agenda.${i}.1" aria-label="Move down">${IC.down}</button><button data-rm="agenda.${i}" aria-label="Remove">${IC.x}</button></div></div>`).join('')}
       <button class="btn ghost" data-add="agenda">+ Add item</button></div>`;
-  if (key === 'photos') return `<div class="ip-h">Photos</div>${usedLine('photos')}<div class="ip-sec"><div class="thumbs">${s.photos.map((p, i) => `<div style="background-image:url('${p}')"><button data-rm="photos.${i}">×</button></div>`).join('')}</div>
+  if (key === 'photos') return `<div class="ip-h">Photos</div>${usedLine('photos')}<div class="ip-sec"><div class="thumbs">${s.photos.map((p, i) => `<div style="background-image:url('${p}')"><button data-rm="photos.${i}" aria-label="Remove">${IC.x}</button></div>`).join('')}</div>
       <button class="btn ghost" data-addphotos>+ Add photos</button><input type="file" id="phPick" accept="image/*" multiple hidden></div>`;
   return '';
 }
@@ -790,7 +794,7 @@ function slidesEditor(p) {
         <input placeholder="Title" value="${esc(x.title)}" data-sl="${i}.title">
         ${x.type === 'list' ? `<textarea rows="4" placeholder="One item per line" data-sl="${i}.items">${esc((x.items || []).join('\n'))}</textarea>` : `<textarea rows="3" placeholder="Text" data-sl="${i}.body">${esc(x.body)}</textarea>`}
         ${x.type === 'text' ? `<input placeholder="Stats, comma separated" value="${esc((x.stats || []).join(', '))}" data-sl="${i}.stats">` : ''}</div>
-      <div class="mv"><button data-slmv="${i}.-1">↑</button><button data-slmv="${i}.1">↓</button><button data-slrm="${i}">×</button></div></div>`).join('')}
+      <div class="mv"><button data-slmv="${i}.-1" aria-label="Move up">${IC.up}</button><button data-slmv="${i}.1" aria-label="Move down">${IC.down}</button><button data-slrm="${i}" aria-label="Remove">${IC.x}</button></div></div>`).join('')}
     <button class="btn ghost" data-sladd>+ Add slide</button></div>`;
 }
 const TEXT_LABEL = { title: 'Title', description: 'Description', cta: 'Call to action' };
@@ -826,12 +830,25 @@ function postTexts(p, t) {
       ${k === 'cta' ? `<input data-pu="${k}" value="${esc(v)}">` : `<textarea data-pu="${k}" rows="${k === 'title' ? 2 : 3}">${esc(v)}</textarea>`}</label>`;
   }).join('')}${facts}</div>`;
 }
-// optional parts a template declares (description, speakers, CTA…): Auto / Show / Hide
-function optionalSeg(opt, cur, attr) {
-  const vals = [['auto', opt.auto ? `Auto` : 'Show'], ['1', 'Show'], ['0', 'Hide']].filter((v, i) => opt.auto || i !== 1);
-  const v = cur == null ? 'auto' : cur ? '1' : '0';
-  return `<div class="optrow"><span>${esc(opt.label)}${opt.auto && cur == null ? `<small>${esc(opt.auto)}</small>` : ''}</span>
-    <div class="seg mini">${vals.map(([k, l]) => `<button data-${attr}="${opt.key}" data-v="${k}" aria-pressed="${k === v}">${l}</button>`).join('')}</div></div>`;
+// one setting: label, control and, when the value is set at this level, a dot and a reset back to where it comes from;
+// an inherited value says where from in the label's tooltip. `wide`: the control takes the row under the label (picture tiles).
+function row(label, ctl, { set = false, from = '', reset = '', wide = false, note = '', sub = '' } = {}) {
+  const back = from ? `Back to the ${from}’s choice` : 'Back to the default';
+  const tip = from ? (set ? `Set here. ${back}: ↺` : `Same as the ${from}`) : '';
+  return `<div class="optrow${set ? ' set' : ''}${wide ? ' wide' : ''}"><span class="ol"${tip ? ` title="${esc(tip)}"` : ''}>${set ? '<i class="dot"></i>' : ''}${esc(label)}${sub ? `<small>${esc(sub)}</small>` : ''}</span>`
+    + `${set && reset ? `<button class="ib xs rs" ${reset} title="${esc(back)}" aria-label="${esc(back)}">${IC.reset}</button>` : ''}<div class="ctl">${ctl}</div>${note ? `<small class="optnote">${note}</small>` : ''}</div>`;
+}
+// optional parts a template declares (description, speakers, CTA…). On the design: Auto / Show / Hide.
+// `ovr` ({ inherit, from }): a slide or a size, which shows the value it inherits until it sets its own (reset goes back)
+function optionalSeg(opt, cur, attr, ovr) {
+  if (!ovr) {
+    const vals = [['auto', opt.auto ? `Auto` : 'Show'], ['1', 'Show'], ['0', 'Hide']].filter((v, i) => opt.auto || i !== 1);
+    const v = cur == null ? 'auto' : cur ? '1' : '0';
+    return row(opt.label, `<div class="seg mini">${vals.map(([k, l]) => `<button data-${attr}="${opt.key}" data-v="${k}" aria-pressed="${k === v}">${l}</button>`).join('')}</div>`, { sub: opt.auto && cur == null ? opt.auto : '' });
+  }
+  const eff = cur ?? ovr.inherit, v = eff == null ? '' : eff ? '1' : '0';
+  return row(opt.label, `<div class="seg mini">${[['1', 'Show'], ['0', 'Hide']].map(([k, l]) => `<button data-${attr}="${opt.key}" data-v="${k}" aria-pressed="${k === v}">${l}</button>`).join('')}</div>`,
+    { set: cur != null, from: ovr.from, reset: `data-reset="${attr}:${opt.key}"`, sub: eff == null && opt.auto ? opt.auto : '' });
 }
 // does each offered choice of a part hold this frame's content? Test-fit off-screen with the choice forced (like renderNode),
 // cached per frame + content (the pick itself is left out of the key). Only for parts marked "fit": true in the manifest.
@@ -856,35 +873,46 @@ function pickFitsOf(list, op, offer) {
       const a = todo.shift();
       if (a) { try { pickFits.set(pickKey(a, op), testPicks(a, op, offer(a))); } catch (e) { console.warn(e); pickFits.set(pickKey(a, op), {}); } return setTimeout(step, 20); }
       pickBusy.delete(job);
-      if (JSON.stringify(sel) === at && !document.activeElement?.closest('#right')) renderInspector();
+      if (JSON.stringify(sel) === at && !typingInPanel()) renderInspector();
     };
     setTimeout(step, 60);
   }
   return null;
 }
-// a part with choices: one pick. On a size the first entry is the design's pick, named ("All sizes: Auto"), on the design it is the default.
+// a part with choices: one pick. On the design the template's default is the starting value (a dot and a reset once changed);
+// on a slide or a size (`fchoice`, `schoice`) the control shows what it inherits (`design`, from `from`) until it picks its own.
 // `list`: the frames the pick applies to (this one, or the design's). A board may allow only some choices (data-choices-<key>);
-// the design offers the union, the frame what its own board allows.
-function choiceRow(opt, cur, attr, list, design, from = 'All sizes') { // `design`: the design-level pick, for the first entry of an image's select
+// the design offers the union, the frame what its own board allows. Choices with a `thumb` are drawn as picture tiles.
+function choiceRow(opt, cur, attr, list, design, from = 'all sizes') {
   const own = attr === 'fchoice' || attr === 'schoice', ok = a => { const al = Studio.boards.allowed(a, opt.key); return c => !al || al.includes(c.id); };
   const offered = opt.choices.filter(c => !list.length || list.some(a => ok(a)(c)));
   let v = cur ?? (own ? '' : opt.default); if (v && !offered.some(c => c.id === v)) v = own ? '' : opt.default; // no longer offered: show the default
+  // what a slide or size with no pick of its own uses: the pick above it, or the default when that pick is not allowed here
+  const inherited = opt.choices.find(c => c.id === design && (!list.length || ok(list[0])(c))) || opt.choices.find(c => c.id === opt.default);
+  const shown = v || inherited?.id || '';
   let tag = () => '', off = () => false;
   if (opt.fit && list.length) { // paged designs with many images: only the first image of each size is tested
     const test = list.length > 8 ? [...new Map(list.map(a => [a.fk, a])).values()] : list, fits = pickFitsOf(test, opt, a => opt.choices.filter(ok(a)).map(c => c.id));
     if (fits) {
       const bad = c => test.filter(a => ok(a)(c) && fits.get(a.id)?.[c.id] === false), good = c => test.filter(a => ok(a)(c) && fits.get(a.id)?.[c.id] !== false);
-      if (own) { tag = c => bad(c).length ? ' (too tight)' : ''; off = c => bad(c).length && c.id !== v; }
+      if (own) { tag = c => bad(c).length ? 'too tight' : ''; off = c => bad(c).length && c.id !== shown; }
       else {
-        tag = c => { const b = bad(c); return !b.length ? '' : good(c).length ? ` (not on ${[...new Set(b.map(a => a.fmt.short || a.fmt.label))].join(', ')})` : ' (too tight)'; };
-        off = c => bad(c).length && !good(c).length && c.id !== v;
+        tag = c => { const b = bad(c); return !b.length ? '' : good(c).length ? `not on ${[...new Set(b.map(a => a.fmt.short || a.fmt.label))].join(', ')}` : 'too tight'; };
+        off = c => bad(c).length && !good(c).length && c.id !== shown;
       }
     }
   }
-  // what an image with no pick of its own uses: the design's pick, or the default when that pick is not allowed on this image
-  const inherited = () => { const c = opt.choices.find(c => c.id === design && (!list.length || ok(list[0])(c))) || opt.choices.find(c => c.id === opt.default); return c ? c.label : ''; };
-  const optn = c => `<option value="${esc(c.id)}" ${c.id === v ? 'selected' : ''} ${off(c) ? 'disabled' : ''}>${esc(c.label)}${tag(c)}</option>`;
-  return `<div class="optrow"${own ? ' title="This image uses the choice made for all sizes, unless you pick one here."' : ''}><span>${esc(opt.label)}</span><select data-${attr}="${opt.key}">${own ? `<option value="">${attr === 'schoice' ? 'Design' : from}: ${esc(inherited())}</option>` : ''}${[...new Set(offered.map(c => c.group || ''))].map(g => { const o = offered.filter(c => (c.group || '') === g).map(optn).join(''); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join('')}</select></div>`;
+  opt.choices.forEach(c => CHO.set(opt.key + '|' + c.id, c));
+  const tiles = opt.choices.some(c => c.thumb);
+  // what an "auto" choice settled on for the images in view: the fork marks it on the board as data-picked-<key>
+  const sc = opt.choices.find(c => c.id === shown), at = 'data-picked-' + opt.key;
+  const picks = sc?.auto ? [...new Set(list.map(a => $(`#world .fr[data-id="${CSS.escape(a.id)}"] [${at}]`)?.getAttribute(at)).filter(Boolean))] : [];
+  const pl = picks.map(id => opt.choices.find(c => c.id === id)?.label).filter(Boolean);
+  const note = pl.length > 1 ? `${esc(sc.label)} picks <b>${pl.map(esc).join(', ')}</b> across sizes` : '';
+  const optn = c => `<option value="${esc(c.id)}" ${c.id === shown ? 'selected' : ''} ${off(c) ? 'disabled' : ''} ${tag(c) ? `data-note="${esc(tag(c))}"` : ''}>${esc(c.label)}</option>`;
+  const groups = [...new Set(offered.map(c => c.group || ''))].map(g => { const o = offered.filter(c => (c.group || '') === g).map(optn).join(''); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join('');
+  const ctl = `<select data-${attr}="${opt.key}"${tiles ? ` data-tiles="${esc(opt.key)}"` : ''}${picks.length === 1 ? ` data-auto="${esc(picks[0])}"` : ''}>${own ? '<option value="" hidden></option>' : ''}${groups}</select>`;
+  return row(opt.label, ctl, { set: own ? !!v : v !== opt.default, from: own ? from : '', reset: `data-reset="${attr}:${opt.key}" data-v="${own ? '' : esc(opt.default)}"`, note });
 }
 const strip = s => String(s || '').replace(/\*([^*]+)\*/g, '$1');
 function autoCaption(p) {
@@ -935,8 +963,9 @@ function duplicatePost(pid) {
 }
 // the brand's grounds as swatches; the first one means "don't override"
 function lookSwatches(cur, attr, autoLabel) {
+  const sw = Object.values(B().backdrops).map(b => b.swatch).filter(Boolean), mix = sw.length ? `conic-gradient(${sw.map((c, i) => `${c} ${i / sw.length * 100}% ${(i + 1) / sw.length * 100}%`).join(',')})` : 'var(--e-field)';
   return `<div class="looks">${Object.entries(B().backdrops).map(([k, b]) => { const v = k === 'auto' && attr !== 'plook' ? '' : k;
-    return `<button class="look ${v === cur ? 'on' : ''}" data-${attr}="${v}" title="${esc(k === 'auto' ? autoLabel : b.label)}" style="${b.swatch ? `background:${b.swatch}` : ''}">${k === 'auto' ? '<i>Auto</i>' : ''}</button>`; }).join('')}</div>`;
+    return `<button class="look ${k === 'auto' ? 'auto ' : ''}${v === cur ? 'on' : ''}" data-${attr}="${v}" title="${esc(k === 'auto' ? autoLabel : b.label)}" aria-label="${esc(k === 'auto' ? autoLabel : b.label)}" aria-pressed="${v === cur}" style="${k === 'auto' ? `--mix:${mix}` : b.swatch ? `background:${b.swatch}` : ''}"></button>`; }).join('')}</div>`;
 }
 const multi = a => a.post.formats.length > 1; // more than one size: "only this size" means something
 function removeSize(id) {
@@ -957,17 +986,137 @@ function listEditor(p, t) {
         <div class="f"><b class="item-n">${esc(one)} ${i + 1}</b>${l.item.filter(f => f.type !== 'image').map(f => f.type === 'long'
           ? `<textarea rows="2" placeholder="${esc(f.label || f.key)}" data-li="${l.key}.${i}.${f.key}">${esc(x[f.key] ?? '')}</textarea>`
           : `<input placeholder="${esc(f.label || f.key)}" value="${esc(x[f.key] ?? '')}" data-li="${l.key}.${i}.${f.key}">`).join('')}</div>
-        <div class="mv"><button data-limv="${l.key}.${i}.-1" title="Move up">↑</button><button data-limv="${l.key}.${i}.1" title="Move down">↓</button><button data-lirm="${l.key}.${i}" title="Remove">×</button></div></div>`).join('')}
+        <div class="mv"><button data-limv="${l.key}.${i}.-1" title="Move up" aria-label="Move up">${IC.up}</button><button data-limv="${l.key}.${i}.1" title="Move down" aria-label="Move down">${IC.down}</button><button data-lirm="${l.key}.${i}" title="Remove" aria-label="Remove">${IC.x}</button></div></div>`).join('')}
       ${items.length < l.max ? `<button class="btn ghost" data-liadd="${l.key}">+ Add ${esc(one.toLowerCase())}</button>` : `<p class="ip-note">At most ${l.max}.</p>`}</div>`;
   }).join('');
 }
-const IC = {
+const IC = { // standard icons (Lucide shapes)
   more: '<svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><circle cx="4.5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15.5" cy="10" r="1.5"/></svg>',
-  dup: '<svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="7" y="7" width="9" height="9" rx="2"/><path d="M13 7V5.5A1.5 1.5 0 0 0 11.5 4h-6A1.5 1.5 0 0 0 4 5.5v6A1.5 1.5 0 0 0 5.5 13H7"/></svg>',
-  del: '<svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M8 6V4.5h4V6M6 6l.7 9.5h6.6L14 6"/></svg>',
+  dup: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="13" height="13" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>',
+  del: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>',
+  plus: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  minus: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/></svg>',
+  x: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  reset: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>',
+  check: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+  chev: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+  left: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+  right: '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+  up: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>',
+  down: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
 };
+/* ═════════════ pickers: every <select> in the chrome is drawn as a custom control ═════════════
+   The <select> stays in the page, hidden, and keeps its value and its change handler: a pick sets the value and fires
+   "change", so the code that reads selects does not know the difference. How it is drawn:
+   - data-tiles="<part key>": a menu button that opens a grid of pictures, from the choices' `thumb` (a fork draws them, see TEMPLATES.md)
+   - two or three short options, no groups: segmented buttons
+   - anything else: a menu button with a popover (groups, disabled options, a muted note per option from data-note)
+   A select marked data-native is left alone. */
+const CHO = new Map(); // "<part key>|<choice id>" → the choice, for its thumb
+const thumbOf = c => { if (!c?.thumb) return ''; if (typeof c.thumb === 'function') c.thumb = String(c.thumb() || ''); return c.thumb; };
+function choose(s, v) {
+  if (s.value === v) return;
+  s.value = v;
+  s.dispatchEvent(new Event('change', { bubbles: true }));
+}
+let pop = null;
+function closePop() { if (!pop) return; pop.el.remove(); const a = pop.anchor; pop = null; a?.setAttribute('aria-expanded', 'false'); }
+// a menu under `anchor`: items are { value, label, note, title, disabled, selected, group }
+function openPop(anchor, items, onPick) {
+  if (pop?.anchor === anchor) return closePop();
+  closePop();
+  const el = document.createElement('div'); el.className = 'pk-pop'; el.setAttribute('role', 'listbox'); el.dataset.uiClear = '';
+  let g = null;
+  el.innerHTML = items.map((it, i) => {
+    let h = '';
+    if ((it.group || null) !== g) { g = it.group || null; if (g) h += `<div class="pk-g">${esc(g)}</div>`; }
+    if (it.sep) h += "<div class=\"pk-sep\"></div>";
+    return h + `<button type="button" role="option" class="pk-it${it.group ? ' in' : ''}" data-i="${i}" aria-selected="${!!it.selected}" ${it.disabled ? 'disabled' : ''} ${it.title ? `title="${esc(it.title)}"` : ''}>${it.thumb ? `<span class="pk-th">${it.thumb}</span>` : ''}<span>${esc(it.label)}</span>${it.note ? `<small>${esc(it.note)}</small>` : ''}${it.selected ? IC.check : ''}</button>`;
+  }).join('');
+  document.body.appendChild(el);
+  const r = anchor.getBoundingClientRect(), w = Math.max(r.width, 180), h = el.offsetHeight, below = innerHeight - r.bottom - 8;
+  el.style.minWidth = w + 'px';
+  el.style.left = Math.max(8, Math.min(r.left, innerWidth - el.offsetWidth - 8)) + 'px';
+  el.style.top = (below >= Math.min(h, 260) || r.top < below ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
+  el.style.maxHeight = Math.max(160, below >= Math.min(h, 260) || r.top < below ? below - 4 : r.top - 12) + 'px';
+  pop = { el, anchor, top: r.top }; anchor.setAttribute('aria-expanded', 'true');
+  el.onclick = e => { const b = e.target.closest('.pk-it'); if (!b || b.disabled) return; closePop(); onPick(items[+b.dataset.i].value); };
+  el.onkeydown = e => {
+    const bs = [...el.querySelectorAll('.pk-it:not(:disabled)')], i = bs.indexOf(document.activeElement);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); bs[(i + (e.key === 'ArrowDown' ? 1 : -1) + bs.length) % bs.length]?.focus(); }
+    if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); const a = anchor; closePop(); a.focus(); }
+  };
+  (el.querySelector('.pk-it[aria-selected="true"]:not(:disabled)') || el.querySelector('.pk-it:not(:disabled)'))?.focus({ preventScroll: true });
+  el.querySelector('.pk-it[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+document.addEventListener('mousedown', e => { if (pop && !pop.el.contains(e.target) && !pop.anchor.contains(e.target)) closePop(); }, true);
+addEventListener('resize', closePop);
+// a scroll that moves the menu's button closes the menu (a redraw that leaves it in place does not)
+document.addEventListener('scroll', e => { if (!pop || pop.el.contains(e.target)) return; const t = pop.anchor.isConnected && pop.anchor.getBoundingClientRect().top; if (t === false || Math.abs(t - pop.top) > 2) closePop(); }, true);
+
+const optItems = s => [...s.options].filter(o => !o.hidden).map(o => ({ value: o.value, label: o.text, note: o.dataset.note, title: o.title, disabled: o.disabled, selected: o.value === s.value, group: o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : null }));
+function menuUI(s) {
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'pk pk-btn'; b.setAttribute('aria-haspopup', 'listbox'); b.setAttribute('aria-expanded', 'false');
+  if (s.title) b.title = s.title;
+  const o = s.options[s.selectedIndex];
+  b.innerHTML = `<span>${esc(o && !o.hidden ? o.text : '')}</span>${o?.dataset.note ? `<small>${esc(o.dataset.note)}</small>` : ''}${IC.chev}`;
+  b.onclick = () => openPop(b, optItems(s), v => choose(s, v));
+  b.onkeydown = e => { if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); b.click(); } };
+  return b;
+}
+function segUI(s) {
+  const d = document.createElement('div'); d.className = 'pk seg';
+  d.innerHTML = [...s.options].filter(o => !o.hidden).map(o => `<button type="button" data-v="${esc(o.value)}" aria-pressed="${o.value === s.value}" ${o.disabled ? 'disabled' : ''} ${o.title || o.dataset.note ? `title="${esc(o.title || o.dataset.note)}"` : ''}>${esc(o.text)}</button>`).join('');
+  d.onclick = e => { const b = e.target.closest('button'); if (b && !b.disabled) choose(s, b.dataset.v); };
+  return d;
+}
+// pictures: the button names the pick (and what Auto chose), the grid of pictures opens under it
+function tilesUI(s, key) {
+  const b = menuUI(s), o = s.options[s.selectedIndex], c = CHO.get(key + '|' + (o?.value || ''));
+  const picked = c?.auto && CHO.get(key + '|' + (s.dataset.auto || ''));
+  if (picked) b.querySelector('span').insertAdjacentHTML('afterend', `<small>${esc(picked.label)}</small>`);
+  b.onclick = () => {
+    if (pop?.anchor === b) return closePop();
+    closePop();
+    const el = document.createElement('div'); el.className = 'pk-pop pk-grid'; el.dataset.uiClear = '';
+    let g = null;
+    el.innerHTML = [...s.options].filter(o => !o.hidden).map(o => {
+      const c = CHO.get(key + '|' + o.value) || {}, grp = o.parentElement.tagName === 'OPTGROUP' ? o.parentElement.label : null;
+      let th = thumbOf(c), badge = '';
+      if (c.auto) { const p = CHO.get(key + '|' + (s.dataset.auto || '')); if (thumbOf(p)) th = thumbOf(p); badge = `<em>${esc(o.text)}</em>`; }
+      const head = grp !== g ? (g = grp, grp ? `<div class="pk-g">${esc(grp)}</div>` : '') : '';
+      return head + `<button type="button" class="tile" data-v="${esc(o.value)}" aria-pressed="${o.value === s.value}" ${o.disabled ? 'disabled' : ''} title="${esc(o.dataset.note ? `${o.text}: ${o.dataset.note}` : o.text)}"><span class="tile-pv">${th || `<i>${esc(o.text.slice(0, 1))}</i>`}${badge}</span><span class="tile-l">${esc(o.text)}</span></button>`;
+    }).join('');
+    document.body.appendChild(el);
+    const r = b.getBoundingClientRect(), h = el.offsetHeight, below = innerHeight - r.bottom - 8;
+    el.style.left = Math.max(8, Math.min(r.right - el.offsetWidth, innerWidth - el.offsetWidth - 8)) + 'px';
+    el.style.top = (below >= h || r.top < below ? r.bottom + 4 : Math.max(8, r.top - 4 - h)) + 'px';
+    el.style.maxHeight = (below >= h || r.top < below ? below - 4 : r.top - 12) + 'px';
+    pop = { el, anchor: b, top: r.top }; b.setAttribute('aria-expanded', 'true');
+    el.onclick = e => { const t = e.target.closest('.tile'); if (!t || t.disabled) return; closePop(); choose(s, t.dataset.v); };
+    el.onkeydown = e => {
+      const bs = [...el.querySelectorAll('.tile:not(:disabled)')], i = bs.indexOf(document.activeElement), step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 4, ArrowUp: -4 }[e.key];
+      if (step) { e.preventDefault(); bs[Math.max(0, Math.min(bs.length - 1, i + step))]?.focus(); }
+      if (e.key === 'Escape' || e.key === 'Tab') { e.preventDefault(); e.stopPropagation(); closePop(); b.focus(); }
+    };
+    (el.querySelector('.tile[aria-pressed="true"]') || el.querySelector('.tile:not(:disabled)'))?.focus({ preventScroll: true });
+  };
+  return b;
+}
+function enhance(root) {
+  if (!root) return;
+  root.querySelectorAll('select:not([data-native])').forEach(s => {
+    if (s.nextElementSibling?.classList.contains('pk')) s.nextElementSibling.remove();
+    const opts = [...s.options].filter(o => !o.hidden);
+    const ui = s.dataset.tiles ? tilesUI(s, s.dataset.tiles)
+      : !s.querySelector('optgroup') && opts.length >= 2 && opts.length <= 3 && opts.every(o => o.text.length <= 12 && !o.dataset.note) && !s.closest('.ftb, .userow') ? segUI(s) : menuUI(s);
+    s.hidden = true; s.after(ui);
+  });
+}
+
 /* One inspector for a post and for anything selected inside it (an image, a text, a photo).
-   Order: what is selected, template, content, images, sizes, show/hide, style, caption, export. */
+   Order: where it stands (all sizes or one), what is selected, the slide, template, content, sizes, photos, the design's style,
+   what this size changes, caption, export. */
 // the photos the selected image shows (or the design's first image): every image slot that is on view now, with add, replace and
 // remove. A photo window may sit under the text and shapes on the canvas, so it is always reachable here
 function photoSlots(pid, a, g) {
@@ -980,6 +1129,10 @@ function photoSlots(pid, a, g) {
   });
   return rows.length ? `<div class="ip-sec"><div class="ip-t">Photo${rows.length > 1 ? 's' : ''}</div>${rows.join('')}</div>` : '';
 }
+// settings a size has been given to change, before it has a value of its own ("+ Change for Feed only"): frame id → keys
+const pins = new Map();
+let sizeMore = []; // what the "+ Change for … only" menu offers
+const tipSeen = () => { try { return localStorage.getItem('studio:tip-edit') === '1'; } catch { return false; } };
 function inspector(pid, id) {
   const p = S().posts.find(x => x.id === pid), t = X.templates[p.template], g = X.assetList().find(g => g.post.id === pid);
   const a = id ? layout.get(id).a : null, o = id ? ov(id) : {};
@@ -996,7 +1149,7 @@ function inspector(pid, id) {
   } else if (a && sel.type === 'sticker') {
     const st = (o.__stickers || [])[sel.idx] || {};
     elem = `<div class="ip-sec el"><div class="ip-t">Selected sticker</div>
-      <p class="ip-note">Drag it to move. The corner handle resizes, the round one rotates (⇧ for steps of 15°). ⌫ deletes.${st.rot ? ` Rotated ${st.rot}°.` : ''}</p>
+      <p class="ip-note">Drag to move. Corner handle resizes, round one rotates (<kbd>⇧</kbd> snaps to 15°).${st.rot ? ` Rotated ${st.rot}°.` : ''}</p>
       <div class="btnrow"><button class="btn" data-el="stAll">Copy to all sizes</button><button class="btn danger" data-el="stDel">Delete</button></div></div>`;
   } else if (a && sel.type === 'photo') {
     const url = X.getContent(pid, sel.path);
@@ -1008,72 +1161,93 @@ function inspector(pid, id) {
   const own = (t.fields || []).length ? t.fields.map(f => field(f.key, f.label, f.type || 'text', '', p.fields[f.key], 'data-pf')).join('') : '';
   // boards are edited on the canvas (click a text, click or drop on an image); only JS templates keep the form
   const content = t.markup ? '' : postTexts(p, t) + (own ? `<div class="ip-sec"><div class="ip-t">${(t.uses || []).length ? 'More text' : 'Content'} <small>all sizes</small></div>${own}</div>` : '') + (needs.includes('slides') ? slidesEditor(p) : '');
-  const hint = t.markup && !elem ? `<div class="ip-sec"><p class="ip-note">Edit on the canvas: double-click a text to type, click an image slot to add a photo. ${multi({ post: p }) ? 'A change applies to every size unless you choose “Only this size”.' : ''}${t.pagesOwn ? ' Use the toolbar above a page to change its layout, move or remove it; the + tile adds a page.' : ''}</p></div>` : '';
+  const hint = t.markup && !elem && !tipSeen() ? `<div class="ip-sec"><div class="tip"><span>Double-click a text to edit it. Click an image slot to add a photo.</span><button class="ib xs" data-tipoff title="Got it" aria-label="Got it">${IC.x}</button></div></div>` : '';
 
-  // the slide: what belongs to this page at every size (layout, look, graphic); the design: what is shared; this size: what differs
+  // the slide: what belongs to this page at every size (layout, look, graphic); the design: what is shared; a size: what differs
   const paged = !!(a && isPage(a)), item = paged ? X.pageItem(id) : null, pt = paged ? a.tpl : t, cont = !!t.container, inSlide = op => cont ? op.scope !== 'design' : op.scope === 'slide', sparts = paged ? (pt.optional || []).filter(inSlide) : []; // in a design of pages every option of a page's template is the page's, unless the template says `design`
+  const dsh = p.fields.show || {}, ssh = item?.show || {}, designHere = !a || !multi(a);
+  const pageFrames = paged ? g.assets.filter(x => pageIdx(x) === pageIdx(a)) : [];
   const slideTpls = [t, ...X.order.map(k => X.templates[k]).filter(x => x.slide && x !== t)];
   const slide = !item ? '' : `<div class="ip-sec"><div class="ip-t">Slide ${pageIdx(a) + 1} of ${p.fields[t.pagesOwn].length} <small>all sizes</small></div>
-    <label class="fld"><span>Template</span><select data-stemplate>${slideTpls.map(x => `<option value="${x.id}" ${x === pt ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select></label>
-    ${pt.layouts.length ? `<label class="fld"><span>Layout</span><select data-slayout>${pt.layouts.map(l => `<option value="${l.id}" ${l.id === (item.layout || pt.layouts[0].id) ? 'selected' : ''}>${esc(l.label)}</option>`).join('')}</select></label>` : ''}
-    <div class="fld"><span>Look</span>${lookSwatches(item.ground || '', 'slook', 'Same as the design')}</div>
-    ${p.formats.filter(fk => !X.allowedFormats(pt).includes(fk)).length ? `<p class="warnline">⚠ This page is not made at ${p.formats.filter(fk => !X.allowedFormats(pt).includes(fk)).map(fk => esc(X.FORMATS[fk].short || X.FORMATS[fk].label)).join(', ')}, so it is left out there.</p>` : ''}
-    ${sparts.map(op => op.choices ? choiceRow(op, (item.show || {})[op.key], 'schoice', g.assets.filter(x => pageIdx(x) === pageIdx(a)), (p.fields.show || {})[op.key]) : optionalSeg(op, (item.show || {})[op.key], 'sshow')).join('')}</div>`;
+    ${row('Template', `<select data-stemplate>${slideTpls.map(x => `<option value="${x.id}" ${x === pt ? 'selected' : ''}>${esc(x.label)}</option>`).join('')}</select>`)}
+    ${pt.layouts.length > 1 ? row('Layout', `<select data-slayout>${pt.layouts.map(l => `<option value="${l.id}" ${l.id === (item.layout || pt.layouts[0].id) ? 'selected' : ''}>${esc(l.label)}</option>`).join('')}</select>`) : ''}
+    ${row('Look', lookSwatches(item.ground || '', 'slook', 'Same as the design'), { set: !!item.ground, from: 'design', reset: 'data-reset="slook:"' })}
+    ${p.formats.filter(fk => !X.allowedFormats(pt).includes(fk)).length ? `<p class="warnline">This page is not made at ${p.formats.filter(fk => !X.allowedFormats(pt).includes(fk)).map(fk => esc(X.FORMATS[fk].short || X.FORMATS[fk].label)).join(', ')}, so it is left out there.</p>` : ''}
+    ${sparts.map(op => op.choices ? choiceRow(op, ssh[op.key], 'schoice', pageFrames, dsh[op.key], 'design') : optionalSeg(op, ssh[op.key], 'sshow', { inherit: dsh[op.key] ?? (op.auto ? null : pt.partDefault?.[op.key]), from: 'design' })).join('')}</div>`;
 
-  // 3. show / hide: for the selected size when there is one, else for the whole post
-  const partsList = (pt.optional || []).filter(op => !((cont || paged) && inSlide(op)));
-  const parts = partsList.length ? `<div class="ip-sec"><div class="ip-t">${cont ? 'Design: show' : 'Show'} <small>${a ? `on ${esc(a.fmt.short || a.fmt.label)} only` : 'on all sizes'}</small></div>
-    ${partsList.map(op => op.choices ? choiceRow(op, a ? (o.__show || {})[op.key] : (p.fields.show || {})[op.key], a ? 'fchoice' : 'pchoice', a ? [a] : g.assets, (p.fields.show || {})[op.key])
-      : a ? optionalSeg(op, (o.__show || {})[op.key] ?? (p.fields.show || {})[op.key], 'fshow') : optionalSeg(op, (p.fields.show || {})[op.key], 'pshow')).join('')}
-    ${a && (o.__hide || []).length ? `<div class="scope"><span>Hidden here: ${o.__hide.map(esc).join(', ')}</span><button class="lnk" data-unhide>Show all</button></div>` : ''}</div>` : '';
+  // 3. the design's own settings (look, parts): on the design, and on an image of a design with one size
+  const dparts = (pt.optional || []).filter(op => !((cont || paged) && inSlide(op)));
+  const dlook = t.markup ? row('Look', lookSwatches(p.look || 'auto', 'plook', 'Template default'), { set: !!p.look, reset: 'data-reset="plook:"' }) : '';
+  const design = designHere && (dparts.length || dlook) ? `<div class="ip-sec"><div class="ip-t">${cont ? 'Every slide' : 'Style'}${a ? '' : ' <small>all sizes</small>'}</div>
+    ${dlook}${dparts.map(op => op.choices ? choiceRow(op, dsh[op.key], 'pchoice', a && !paged ? [a] : g.assets, null) : optionalSeg(op, dsh[op.key], 'pshow')).join('')}</div>` : '';
 
-  // 4. style of the selected size
-  let style = '';
+  // 4. this size: only what it changes (a dot and a reset), and a menu to change one more thing here
+  let size = '';
   if (a) {
-    const node = $(`#world .fr[data-id="${CSS.escape(id)}"] .asset`), cur = node?.dataset.bd, curTheme = o.__theme || a.item.theme || S().theme;
+    const short = a.fmt.short || a.fmt.label, fsh = o.__show || {}, pin = pins.get(id) || new Set();
     const warn = $(`#world .fr[data-id="${CSS.escape(id)}"]`)?.classList.contains('warn');
-    const edits = Object.keys(o).filter(k => !k.startsWith('__'));
-    style = `<div class="ip-sec"><div class="ip-t">${paged ? 'This size' : 'Style'} <small>${esc(a.fmt.short || a.fmt.label)} only</small></div>
-      ${warn ? `<p class="warnline">⚠ ${a.tpl.markup ? 'Some content doesn’t fit this size. Shorten the text or hide a part.' : 'Text touches a shape with this background. Pick another one or shorten the text.'}</p>` : ''}
-      ${sparts.filter(op => !op.choices).map(op => optionalSeg(op, (o.__show || {})[op.key], 'fshow')).join('')}
-      ${sparts.filter(op => op.choices).map(op => choiceRow(op, (o.__show || {})[op.key], 'fchoice', [a], (item.show || {})[op.key] || (p.fields.show || {})[op.key], 'Slide')).join('')}
-      ${paged && cont ? (o.__bg ? `<div class="fld"><span>Look</span>${lookSwatches(o.__bg, 'flook', 'Same as the slide')}</div>` : '') : a.tpl.markup ? `<div class="fld"><span>Look</span>${lookSwatches(o.__bg || '', 'flook', p.look ? 'Same as the design' : 'Template default')}</div>` : a.tpl.backdrop ? `<label class="fld"><span>Background</span><select data-fbg>${bgOptions(a, o, cur)}</select></label>` : ''}
-      ${themes.length > 1 ? `<label class="fld"><span>Theme</span><div class="seg">${themes.map(([k, th]) => `<button data-ftheme="${k}" aria-pressed="${k === curTheme}">${esc(th.label || k)}</button>`).join('')}</div></label>` : ''}
-      ${hasMotion ? `<label class="chk urow"><input type="checkbox" data-fmotion ${o.__motion ? 'checked' : ''}> Motion <small>animated, exports MP4</small></label>` : ''}
-      ${edits.length ? `<div class="scope"><span>${edits.length} text change${edits.length > 1 ? 's' : ''} on this size</span><button class="lnk" data-freset>Reset all</button></div>` : ''}
-      ${`<div class="scope"><span>${(o.__stickers || []).length ? `${o.__stickers.length} sticker${o.__stickers.length > 1 ? 's' : ''}` : 'Stickers: paste a PNG (⌘V) or'}</span><button class="lnk" data-fsticker>Add sticker…</button></div>`}
-    </div>`;
+    const edits = Object.keys(o).filter(k => !k.startsWith('__') && !k.startsWith('pos:'));
+    const rows = [], more = [];
+    const offer = (key, label, isSet, html) => { if (isSet || pin.has(key)) rows.push(html()); else more.push({ value: key, label }); };
+    if (!designHere) {
+      const fromOf = op => paged && inSlide(op) ? 'slide' : 'all sizes';
+      const inh = op => paged && inSlide(op) ? ssh[op.key] ?? dsh[op.key] : dsh[op.key];
+      for (const op of [...sparts, ...dparts]) offer(op.key, op.label, fsh[op.key] != null, () => op.choices
+        ? choiceRow(op, fsh[op.key], 'fchoice', [a], inh(op), fromOf(op))
+        : optionalSeg(op, fsh[op.key], 'fshow', { inherit: inh(op) ?? (op.auto ? null : pt.partDefault?.[op.key]), from: fromOf(op) }));
+      if (a.tpl.markup) offer('__bg', 'Look', o.__bg != null, () => row('Look', lookSwatches(o.__bg || '', 'flook', paged && cont ? 'Same as the slide' : p.look ? 'Same as the design' : 'Template default'), { set: o.__bg != null, from: paged && cont ? 'slide' : 'all sizes', reset: 'data-reset="flook:"' }));
+    } else if (a.tpl.markup && o.__bg) rows.push(row('Look', lookSwatches(o.__bg, 'flook', paged ? 'Same as the slide' : 'Same as the design'), { set: true, from: paged ? 'slide' : 'design', reset: 'data-reset="flook:"' })); // set before the design had one size
+    if (!a.tpl.markup && a.tpl.backdrop) rows.push(row('Background', `<select data-fbg>${bgOptions(a, o, $(`#world .fr[data-id="${CSS.escape(id)}"] .asset`)?.dataset.bd)}</select>`, { set: !!o.__bg, reset: 'data-reset="flook:"' }));
+    if (themes.length > 1) { const curTheme = o.__theme || a.item.theme || S().theme;
+      const html = () => row('Theme', `<div class="seg mini">${themes.map(([k, th]) => `<button data-ftheme="${k}" aria-pressed="${k === curTheme}">${esc(th.label || k)}</button>`).join('')}</div>`, { set: o.__theme != null, from: designHere ? '' : 'project', reset: 'data-reset="ftheme:"' });
+      if (designHere) rows.push(html()); else offer('__theme', 'Theme', o.__theme != null, html); }
+    if (hasMotion) rows.push(row('Motion', `<button class="sw" role="switch" data-fmotion aria-checked="${!!o.__motion}" title="Animated, exports MP4"></button>`, { sub: 'exports MP4' }));
+    const stick = (o.__stickers || []).length;
+    more.push({ value: '__sticker', label: 'Sticker…', note: '⌘V', sep: more.length > 0 });
+    const notes = [
+      edits.length && `<div class="scope"><span>${edits.length} text change${edits.length > 1 ? 's' : ''} here</span><button class="lnk" data-freset>Reset</button></div>`,
+      (o.__hide || []).length && `<div class="scope"><span>Hidden here: ${o.__hide.map(esc).join(', ')}</span><button class="lnk" data-unhide>Show all</button></div>`,
+      stick && `<div class="scope"><span>${stick} sticker${stick > 1 ? 's' : ''}</span><button class="lnk" data-fsticker>Add another…</button></div>`,
+    ].filter(Boolean).join('');
+    sizeMore = more;
+    size = `<div class="ip-sec"><div class="ip-t">${designHere ? 'This image' : `Only on ${esc(short)}`}${!designHere && rows.length ? ` <small>${rows.length} change${rows.length > 1 ? 's' : ''}</small>` : ''}</div>
+      ${warn ? `<p class="warnline">${a.tpl.markup ? 'Some content doesn’t fit this size. Shorten the text or hide a part.' : 'Text touches a shape with this background. Pick another one or shorten the text.'}</p>` : ''}
+      ${rows.join('')}${notes}
+      ${designHere ? (stick ? '' : `<div class="scope"><span>Stickers: paste a PNG (<kbd>⌘V</kbd>)</span><button class="lnk" data-fsticker>Add…</button></div>`)
+        : `<button class="btn ghost" data-fadd aria-haspopup="listbox">${IC.plus}Change for ${esc(short)} only</button>`}</div>`;
   }
-  if (!a && t.markup) style = `<div class="ip-sec"><div class="ip-t">Look <small>all sizes</small></div>${lookSwatches(p.look || 'auto', 'plook', 'Template default')}</div>`;
   for (const k in X.kinds) X.setFocus(k, X.sharedItem(p, k).id); // a design made next reads the same items as the one on show
   // the item of each kind this design reads: a pick when the project has several (two events), and the way to its editor
   const itemUses = X.kindsOf(p).filter(k => X.kinds[k]).map(k => { const items = X.S.shared[k], cur = X.sharedItem(p, k);
-    return `<div class="fld"><span>${esc(X.kinds[k].label)}</span><div class="userow">${items.length > 1 ? `<select data-puse="${k}">${items.map(v => `<option value="${v.id}" ${v === cur ? 'selected' : ''}>${esc(X.itemLabel(k, v))}</option>`).join('')}</select>` : ''}<button class="use" data-goto="kind:${k}:${cur.id}">${items.length > 1 ? 'Edit' : esc(X.itemLabel(k, cur))} ›</button></div></div>`; }).join('');
+    return row(X.kinds[k].label, `<div class="userow">${items.length > 1 ? `<select data-puse="${k}">${items.map(v => `<option value="${v.id}" ${v === cur ? 'selected' : ''}>${esc(X.itemLabel(k, v))}</option>`).join('')}</select>` : ''}<button class="use" data-goto="kind:${k}:${cur.id}">${items.length > 1 ? 'Edit' : esc(X.itemLabel(k, cur))} ›</button></div>`); }).join('');
   const sharedUses = [((t.uses || []).length || t.facts) && ['event', 'Details'], needs.includes('speakers') && ['speakers', 'Speakers'], needs.includes('agenda') && ['agenda', 'Agenda'], needs.includes('photos') && ['photos', 'Photos']].filter(Boolean);
   const motion = g.assets.filter(x => ov(x.id).__motion).length;
+  // where the inspector stands: the whole design, or one of its sizes
+  const scopeSw = p.formats.length > 1 || a ? `<div class="seg scope-sw" role="tablist"><button data-gopost="${pid}" aria-pressed="${!a}">All sizes</button>${p.formats.map(fk => `<button data-gosize="${fk}" aria-pressed="${a?.fk === fk}" title="${esc(X.FORMATS[fk].label)}, ${X.FORMATS[fk].w}×${X.FORMATS[fk].h}">${esc(X.FORMATS[fk].short || X.FORMATS[fk].label)}</button>`).join('')}</div>` : '';
 
   return `<div class="ip-h ip-head"><textarea class="ip-name" data-pname rows="1" title="Rename">${esc(p.name || t.label)}</textarea>
-      <button class="ib" data-pdup title="Duplicate">${IC.dup}</button><button class="ib danger" data-pdel title="Delete (⌫)">${IC.del}</button></div>
-    <div class="ip-sub">${a ? `<b>${esc(a.fmt.label)}</b> ${a.fmt.w}×${a.fmt.h}${a.item.label ? ', ' + esc(a.item.label) : ''} <button class="use" data-gopost="${pid}">All sizes</button>` : `${g.assets.length} image${g.assets.length === 1 ? '' : 's'}, all sizes selected`}</div>
-    ${a ? '' : `<div class="ip-sec ip-when"><label class="fld"><span>Publish on</span><input type="date" data-pdate value="${esc(p.date || '')}"></label>${p.date ? '<button class="lnk" data-pdateclear>No date</button>' : ''}</div>`}
+      <button class="ib" data-pdup title="Duplicate" aria-label="Duplicate">${IC.dup}</button><button class="ib danger" data-pdel title="Delete (⌫)" aria-label="Delete">${IC.del}</button></div>
+    <div class="ip-scope">${scopeSw}<div class="ip-sub">${a ? `${esc(a.fmt.label)}, ${a.fmt.w}×${a.fmt.h}${a.item.label ? ', ' + esc(a.item.label) : ''}` : `${g.assets.length} image${g.assets.length === 1 ? '' : 's'}${p.formats.length > 1 ? `, ${p.formats.length} sizes` : ''}`}</div></div>
+    ${a ? '' : `<div class="ip-sec">${row('Publish', `<button class="chip" data-pdatebtn>${p.date ? esc(dayOf(p.date)) : 'No date'}</button><input type="date" class="vh" data-pdate value="${esc(p.date || '')}" tabindex="-1" aria-hidden="true">${p.date ? `<button class="ib xs" data-pdateclear title="No date" aria-label="No date">${IC.x}</button>` : ''}`)}</div>`}
     ${elem}
     ${slide}
-    ${cont ? '' : `<div class="ip-sec"><div class="ip-t">Template</div><select data-ptpl>${[...new Set(X.order.map(k => X.templates[k].group || ''))].map(g => { const o = X.order.filter(k => (X.templates[k].group || '') === g).map(k => `<option value="${k}" ${k === p.template ? 'selected' : ''}>${esc(X.templates[k].label)}</option>`).join(''); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join('')}</select>
-      <p class="ip-note">${esc(t.description || '')}</p></div>`}
+    ${cont || (a && !designHere) ? '' : `<div class="ip-sec"><div class="ip-t">Template</div><select data-ptpl>${[...new Set(X.order.map(k => X.templates[k].group || ''))].map(g => { const o = X.order.filter(k => (X.templates[k].group || '') === g).map(k => `<option value="${k}" ${k === p.template ? 'selected' : ''}>${esc(X.templates[k].label)}</option>`).join(''); return g ? `<optgroup label="${esc(g)}">${o}</optgroup>` : o; }).join('')}</select>
+      ${t.description ? `<p class="ip-note">${esc(t.description)}</p>` : ''}</div>`}
     ${hint}${content}
     ${t.markup ? '' : photosBlock(pid, id)}
-    ${a ? '' : `<div class="ip-sec"><div class="ip-t">Sizes</div>${t.formats ? `<p class="ip-note">${esc(X.FORMATS[t.formats[0]].label)}: ${esc(X.FORMATS[t.formats[0]].hint)}.</p>` :
-      `<div class="sizes">${allowed.map(k => { const f = X.FORMATS[k]; return `<label class="size ${p.formats.includes(k) ? 'on' : ''}"><input type="checkbox" data-psize="${k}" ${p.formats.includes(k) ? 'checked' : ''}><i class="fk fk-${f.kind}"></i><span><b>${esc(f.label)}</b><small>${esc(f.hint)}</small></span></label>`; }).join('')}</div>`}</div>`}
+    ${a ? '' : `<div class="ip-sec"><div class="ip-t">Sizes${t.formats ? '' : ` <small>${p.formats.length} of ${allowed.length}</small>`}</div>${t.formats ? `<p class="ip-note">${esc(X.FORMATS[t.formats[0]].label)}: ${esc(X.FORMATS[t.formats[0]].hint)}.</p>` :
+      `<div class="sizes">${allowed.map(k => { const f = X.FORMATS[k], on = p.formats.includes(k), r = Math.min(26 / f.w, 26 / f.h); return `<label class="size ${on ? 'on' : ''}" title="${esc(f.label)}: ${esc(f.hint)}"><input type="checkbox" data-psize="${k}" ${on ? 'checked' : ''}><i><b style="width:${Math.round(f.w * r)}px;height:${Math.round(f.h * r)}px"></b></i><span>${esc(f.short || f.label)}</span></label>`; }).join('')}</div>`}</div>`}
     ${photoSlots(pid, a, g)}
-    ${parts}
-    ${style}
+    ${design}
+    ${size}
     <div class="ip-sec"><div class="ip-t">Caption <small>${p.fields.caption != null ? 'edited' : 'generated'}</small></div>
       <textarea data-caption rows="5">${esc(captionOf(p))}</textarea>
-      <div class="btnrow"><button class="btn" data-capcopy>Copy caption</button>${p.fields.caption != null ? '<button class="lnk" data-capreset>Regenerate</button>' : ''}</div></div>
-    ${sharedUses.length || itemUses ? `<div class="ip-sec"><div class="ip-t">Uses shared content</div>${itemUses}<div class="uses">${sharedUses.map(([k, l]) => `<button class="use" data-goto="${k}">${esc(l)} ›</button>`).join('')}</div></div>` : ''}
-    <div class="ip-sec"><div class="btnrow"><button class="btn primary" ${a ? 'data-fexport' : 'data-pexport'}>Export ${a ? 'this image' : 'design'}…</button>${a ? '<button class="btn" data-fzoom>Zoom to</button>' : ''}${hasMotion && !a ? `<button class="btn" data-pmotion>${motion && motion === g.assets.length ? 'Stop motion' : 'Animate all'}</button>` : ''}</div>
+      <div class="btnrow"><button class="btn" data-capcopy>${IC.dup}Copy caption</button>${p.fields.caption != null ? '<button class="lnk" data-capreset>Regenerate</button>' : ''}</div></div>
+    ${sharedUses.length || itemUses ? `<div class="ip-sec"><div class="ip-t">Uses shared content</div>${itemUses}${sharedUses.length ? `<div class="uses">${sharedUses.map(([k, l]) => `<button class="use" data-goto="${k}">${esc(l)} ›</button>`).join('')}</div>` : ''}</div>` : ''}
+    <div class="ip-sec"><div class="btnrow"><button class="btn primary" ${a ? 'data-fexport' : 'data-pexport'}>Export ${a ? esc(a.fmt.short || 'this image') : 'design'}…</button>${a ? '<button class="btn" data-fzoom>Zoom to</button>' : ''}${hasMotion && !a ? `<button class="btn" data-pmotion>${motion && motion === g.assets.length ? 'Stop motion' : 'Animate all'}</button>` : ''}</div>
       ${a ? X.actions.filter(x => !x.test || x.test(a)).map(x => `<button class="lnk" data-ext="${x.id}" title="${esc(x.title || '')}">${esc(x.label)}</button>`).join('') : ''}</div>`;
 }
+
 function bindInspector(R) {
   const s = X.S;
   R.querySelectorAll('[data-k]').forEach(el => el.addEventListener('input', () => { s[el.dataset.k] = el.value; X.changed(); }));
@@ -1147,7 +1321,7 @@ function bindInspector(R) {
   R.querySelectorAll('[data-sshow]').forEach(b => b.onclick = () => { const it = X.pageItem(id); if (!it) return; const sh = (it.show ||= {}), k = b.dataset.sshow; if (b.dataset.v === 'auto') delete sh[k]; else sh[k] = b.dataset.v === '1'; if (!Object.keys(sh).length) delete it.show; X.changed({ form: true }); renderInspector(); });
   R.querySelectorAll('[data-flook]').forEach(b => b.onclick = () => { setBg(id, b.dataset.flook); renderInspector(); });
   R.querySelectorAll('[data-ftheme]').forEach(b => b.onclick = () => setTheme(id, b.dataset.ftheme));
-  const fm = R.querySelector('[data-fmotion]'); if (fm) fm.onchange = () => toggleMotion(id);
+  const fm = R.querySelector('[data-fmotion]'); if (fm) fm.onclick = () => { toggleMotion(id); fm.setAttribute('aria-checked', !!ov(id).__motion); };
   const fr = R.querySelector('[data-freset]'); if (fr) fr.onclick = () => { s.overrides[id] = Object.fromEntries(Object.entries(s.overrides[id] || {}).filter(([k]) => k.startsWith('__'))); X.changed(); };
   const fe = R.querySelector('[data-fexport]'); if (fe) fe.onclick = () => openExport({ scope: 'frame' });
   const fz = R.querySelector('[data-fzoom]'); if (fz) fz.onclick = () => zoomToFrame(id);
@@ -1177,9 +1351,36 @@ function bindInspector(R) {
     const cr = R.querySelector('[data-capreset]'); if (cr) cr.onclick = () => { delete p.fields.caption; X.changed({ form: true }); };
     R.querySelectorAll('[data-pu]').forEach(el => el.addEventListener('input', () => { const k = el.dataset.pu; if (el.value === X.S[k]) delete p.fields[k]; else p.fields[k] = el.value; X.changed(); }));
     R.querySelectorAll('[data-pureset]').forEach(b => b.onclick = () => { delete p.fields[b.dataset.pureset]; X.changed({ form: true }); });
+    // the publish date is a chip; the browser's own calendar opens from it
+    const pdb = R.querySelector('[data-pdatebtn]'); if (pdb) pdb.onclick = () => { const i = R.querySelector('[data-pdate]'); try { i.showPicker(); } catch { i.focus(); } };
+    // the scope switch: the whole design, or one of its sizes (on a page, the same page at that size)
+    R.querySelectorAll('[data-gosize]').forEach(b => b.onclick = () => {
+      const A = sel?.id ? assetById(sel.id) : null, list = assets().filter(x => x.post.id === p.id && x.fk === b.dataset.gosize);
+      const to = (A && isPage(A) && list.find(x => pageIdx(x) === pageIdx(A))) || list[0]; if (to) { select({ type: 'frame', id: to.id }); ensureVisible(to.id); }
+    });
+    // a dot and ↺: back to the value from the slide, the design or the default
+    R.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => {
+      const [at, k] = b.dataset.reset.split(':'); pins.get(id)?.delete({ flook: '__bg', ftheme: '__theme' }[at] || k);
+      if (at === 'fshow' || at === 'sshow') {
+        const holder = at === 'fshow' ? s.overrides[id] : X.pageItem(id), f = at === 'fshow' ? '__show' : 'show', sh = holder?.[f];
+        if (sh) { delete sh[k]; if (!Object.keys(sh).length) delete holder[f]; }
+        X.changed({ form: at === 'sshow' }); return renderInspector();
+      }
+      if (at === 'flook') { setBg(id, ''); return renderInspector(); }
+      if (at === 'ftheme') { if (s.overrides[id]) delete s.overrides[id].__theme; X.changed(); return renderInspector(); }
+      if (at === 'slook') { const it = X.pageItem(id); if (it) delete it.ground; X.changed({ form: true }); return renderInspector(); }
+      if (at === 'plook') { delete p.look; X.changed({ form: true }); return renderInspector(); }
+      const el = R.querySelector(`select[data-${at}="${CSS.escape(k)}"]`); if (el) { el.value = b.dataset.v || ''; el.dispatchEvent(new Event('change')); }
+    });
+    // "+ Change for Feed only": a setting this size does not change yet, shown with the value it inherits until it gets its own
+    const fa = R.querySelector('[data-fadd]'); if (fa) fa.onclick = () => openPop(fa, sizeMore, v => {
+      if (v === '__sticker') return pickSticker(id);
+      (pins.get(id) || pins.set(id, new Set()).get(id)).add(v); renderInspector();
+    });
   }
+  const to = R.querySelector('[data-tipoff]'); if (to) to.onclick = () => { try { localStorage.setItem('studio:tip-edit', '1'); } catch {} renderInspector(); };
 }
-function refreshPanels() { renderLayers(); if (!document.activeElement?.closest('#right')) renderInspector(); }
+function refreshPanels() { renderLayers(); if (!typingInPanel()) renderInspector(); }
 
 /* ═════════════ top bar, data popover ═════════════ */
 function bindTopbar() {
@@ -1192,14 +1393,14 @@ function bindTopbar() {
   saveState();
   $('#docName').oninput = e => { X.S.name = e.target.value; X.changed(); };
 }
-function openModal(html, cls = '') { const m = $('#modal'); m.innerHTML = `<div class="dlg ${cls}">${html}</div>`; m.hidden = false; m.onclick = e => { if (e.target === m || e.target.closest('[data-close]')) closeModal(); }; return m; }
+function openModal(html, cls = '') { const m = $('#modal'); m.innerHTML = `<div class="dlg ${cls}">${html}</div>`; enhance(m); m.hidden = false; m.onclick = e => { if (e.target === m || e.target.closest('[data-close]')) closeModal(); }; return m; }
 function closeModal() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
 // the Save button says whether there is work that is only in this browser
 // ("Saved" only after a save in this session: an untouched new project or example has nothing to lose, and says Save)
 let savedHere = false;
 function saveState() { const b = $('#saveBtn'); if (!b) return; b.disabled = X.saving; if (X.saving) { b.innerHTML = 'Saving…'; return; } if (!X.unsaved && b.classList.contains('dirty')) savedHere = true; b.classList.toggle('dirty', X.unsaved); b.innerHTML = X.unsaved ? '<i class="dot"></i>Save' : savedHere ? 'Saved' : 'Save'; }
 function openData() {
-  const m = openModal(`<div class="sh-h"><b>Project</b><button class="ib" data-close>×</button></div>
+  const m = openModal(`<div class="sh-h"><b>Project</b><button class="ib" data-close aria-label="Close">${IC.x}</button></div>
     <div class="pj">
       <div class="pj-row"><div><b>Save as one file</b><p class="ip-note">An .html file with the whole project in it. Open it in any browser to see and edit it, send it to share. This is the real save: work is otherwise kept in this browser only.</p></div><button class="btn primary" id="saveSheet">Save (⌘S)</button></div>
       <div class="pj-row"><div><b>Open a file</b><p class="ip-note">A saved .html project or its .json. Replaces what is open here (⌘Z brings it back).</p></div><button class="btn" id="openFile">Open…</button><input type="file" id="openPick" accept=".html,.htm,.json,text/html,application/json" hidden></div>
@@ -1230,7 +1431,7 @@ function openExport(opts = {}) {
   ].filter(Boolean);
   let scope = scopes.find(s => s[0] === opts.scope) ? opts.scope : scopes[0][0];
   const hasSVG = !!window.StudioSVG, hasMP4 = !!window.StudioAnimate?.exportMp4;
-  const m = openModal(`<div class="sh-h"><b>Export</b><button class="ib" data-close>×</button></div>
+  const m = openModal(`<div class="sh-h"><b>Export</b><button class="ib" data-close aria-label="Close">${IC.x}</button></div>
     <div class="ip-t">Scope</div><div class="seg" id="exScope">${scopes.map(([k, l]) => `<button data-v="${k}">${esc(l)}</button>`).join('')}</div>
     <div class="ip-t">Files</div>
     <label class="chk urow"><input type="checkbox" data-ft="png" checked> PNG <small>every frame</small></label>
@@ -1292,7 +1493,7 @@ Studio.ui = {
   mount, render, reset,
   refreshPanels,
   saveState,
-  changed(opts) { record(); if (!opts?.form) { renderLayers(); if (!document.activeElement?.closest('#right')) renderInspector(); } },
+  changed(opts) { record(); if (!opts?.form) { renderLayers(); if (!typingInPanel()) renderInspector(); } },
   select, fitAll, zoomToFrame, get view() { return view; }, get selection() { return sel; },
 };
 })();
